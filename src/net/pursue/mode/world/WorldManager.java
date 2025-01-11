@@ -1,0 +1,74 @@
+package net.pursue.mode.world;
+
+import net.minecraft.network.play.server.SPacketTimeUpdate;
+import net.pursue.event.EventTarget;
+import net.pursue.event.packet.EventPacket;
+import net.pursue.event.update.EventTick;
+import net.pursue.utils.category.Category;
+import net.pursue.mode.Mode;
+import net.pursue.value.values.ModeValue;
+import net.pursue.value.values.NumberValue;
+
+public class WorldManager extends Mode {
+
+    public static WorldManager instance;
+
+    public final ModeValue<timeMode> timeModeModeValue = new ModeValue<>(this,"TimeMode", timeMode.values(), timeMode.Set);
+
+    public enum timeMode {
+        Speed,
+        Set
+    }
+
+
+    public final NumberValue<Number> speed = new NumberValue<>(this,"Speed",1,1,10,1,()-> timeModeModeValue.getValue().equals(timeMode.Speed));
+    public final NumberValue<Number> time = new NumberValue<>(this,"Time",12000,0,24000,100,()-> timeModeModeValue.getValue().equals(timeMode.Set));
+    private final ModeValue<weatherMode> weatherModeModeValue = new ModeValue<>(this,"weatherMode", weatherMode.values(), weatherMode.Raining);
+
+    enum weatherMode {
+        None,
+        Raining
+    }
+
+    public final NumberValue<Number> flameHigh = new NumberValue<>(this,"FlameHigh",-0.4,-0.4,0.4,0.1);
+
+
+    public WorldManager() {
+        super("WorldManager", "世界管理器", "修改你当前世界的一些东西或者身上效果", Category.WORLD);
+        instance = this;
+    }
+
+    private int tick;
+
+    @EventTarget
+    private void onTick(EventTick eventUpdate) {
+        if (mc.player != null) {
+            mc.player.capabilities.allowEdit = true;
+            tick ++;
+        }
+
+        if (mc.world != null) {
+            if (weatherModeModeValue.getValue().equals(weatherMode.Raining)) {
+                mc.world.getWorldInfo().setRaining(true);
+                mc.world.getWorldInfo().setRainTime(tick + 100);
+                mc.world.setRainStrength(1);
+            } else {
+                mc.world.getWorldInfo().setRaining(false);
+                mc.world.getWorldInfo().setRainTime(0);
+                mc.world.setRainStrength(0);
+            }
+        }
+    }
+
+    @EventTarget
+    private void onPacket(EventPacket eventPacket) {
+        if (eventPacket.getPacket() instanceof SPacketTimeUpdate sPacketTimeUpdate) {
+            if (timeModeModeValue.getValue().equals(timeMode.Set)) {
+                sPacketTimeUpdate.setWorldTime(time.getValue().intValue());
+            } else {
+                long time = sPacketTimeUpdate.getWorldTime() * (speed.getValue().intValue() * 10L);
+                sPacketTimeUpdate.setWorldTime(time);
+            }
+        }
+    }
+}
