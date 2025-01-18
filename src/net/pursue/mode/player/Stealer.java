@@ -11,6 +11,7 @@ import net.minecraft.item.ItemAir;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketClickWindow;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
+import net.minecraft.network.play.server.SPacketBlockAction;
 import net.minecraft.network.play.server.SPacketOpenWindow;
 import net.minecraft.tileentity.TileEntityBrewingStand;
 import net.minecraft.tileentity.TileEntityChest;
@@ -21,20 +22,25 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.ITextComponent;
+import net.pursue.Nattalie;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
 import net.pursue.event.update.EventTick;
-import net.pursue.utils.category.Category;
+
+import net.pursue.event.update.EventUpdate;
+import net.pursue.event.world.EventWorldLoad;
 import net.pursue.mode.Mode;
+import net.pursue.mode.combat.KillAura;
+import net.pursue.mode.hud.ClickGUI;
+import net.pursue.ui.notification.NotificationType;
 import net.pursue.utils.Block.BezierUtil;
-import net.pursue.utils.category.MoveCategory;
 import net.pursue.utils.TimerUtils;
-import net.pursue.utils.rotation.RotationUtils;
-import net.pursue.utils.rotation.SilentRotation;
+import net.pursue.utils.category.Category;
+import net.pursue.utils.client.DebugHelper;
+import net.pursue.utils.player.PacketUtils;
 import net.pursue.value.values.BooleanValue;
 import net.pursue.value.values.NumberValue;
 
-import javax.vecmath.Vector2f;
 import java.util.*;
 
 public class Stealer extends Mode {
@@ -42,23 +48,15 @@ public class Stealer extends Mode {
     public static Stealer instance;
 
     public final BooleanValue<Boolean> silent = new BooleanValue<>(this, "SilentGui", false);
-    private final NumberValue<Number> firstDelay = new NumberValue<>(this, "First Delay", 0,0,100,5);
-    private final NumberValue<Number> delayValue = new NumberValue<>(this, "Delay", 0,0,100,5);
-    private final NumberValue<Number> closeDelayValue = new NumberValue<>(this, "Close Delay", 0,0,100,5);
-    public final BooleanValue<Boolean> aura = new BooleanValue<>(this, "Aura", false);
-    private final NumberValue<Number> auraDelay = new NumberValue<>(this, "AuraDelay", 0,0,100,5);
+    private final NumberValue<Number> delay = new NumberValue<>(this, "Delay", 0,0,100,10);
+    private final BooleanValue<Boolean> arua = new BooleanValue<>(this, "ChestAura",false);
 
     public Stealer() {
         super("Stealer", "容器小偷", "偷走可打开容器的物品", Category.PLAYER);
         instance = this;
     }
 
-    private final TimerUtils firstDelayTimer = new TimerUtils();
-    private final TimerUtils delayTimer = new TimerUtils();
-    private final TimerUtils closeTimer = new TimerUtils();
-    private final TimerUtils auraDelayTimer = new TimerUtils();
-
-    public final HashSet<BlockPos> stolen = new HashSet<>();
+    private final TimerUtils timer = new TimerUtils();
 
     public BlockPos currentChest = null;
     private BlockPos lastC08 = null;
@@ -66,70 +64,67 @@ public class Stealer extends Mode {
     public int count = 0;
     public BezierUtil progress = new BezierUtil(4, 0);
 
+    public final HashSet<BlockPos> stolen = new HashSet<>();
+    
+    @Override
+    public void enable() {
+        timer.reset();
+        stolen.clear();
+    }
+
     @EventTarget
-    private void onSteal(EventTick eventTick) {
+    private void onUpdate(EventUpdate eventUpdate) {
         if (mc.player.openContainer.windowId == 0) {
-            firstDelayTimer.reset();
-            /*
-             * Chest Aura
-             */
-            if (aura.getValue() && !Blink.instance.isEnable() && !Scaffold.INSTANCE.isEnable() && !AutoHeal.instance.isEnable() && AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple)) {
+            if (arua.getValue() && (!Blink.instance.isEnable() || KillAura.INSTANCE.target != null || Scaffold.INSTANCE.isEnable())) {
                 final var tile = mc.world.loadedTileEntityList.stream()
                         .filter(container -> container instanceof TileEntityChest || container instanceof TileEntityFurnace || container instanceof TileEntityBrewingStand)
                         .filter(entity -> !stolen.contains(entity.getPos()))
                         .filter(tileEntity -> mc.player.getDistance(tileEntity.getPos().getX(), tileEntity.getPos().getY(), tileEntity.getPos().getZ()) <= 4.5F).min(Comparator.comparingDouble(entity -> mc.player.getDistanceSq(entity.getPos())));
-                if (tile.isPresent() && auraDelayTimer.hasTimePassed(auraDelay.getValue().intValue())) {
+                if (tile.isPresent()) {
                     final var container = tile.get();
                     if (mc.currentScreen == null) {
-
-                        float[] rot = RotationUtils.getRotationBlock(container.getPos());
-                        SilentRotation.setRotation(new Vector2f(rot), MoveCategory.Silent);
-
-                        CPacketPlayerTryUseItemOnBlock packet = new CPacketPlayerTryUseItemOnBlock(container.getPos(), Stealer.getFacingDirection(container.getPos()), EnumHand.MAIN_HAND, 0, 0, 0);
-                        packet.placeDisabler = true;
-                        Objects.requireNonNull(mc.getConnection()).sendPacket(packet);
+                        mc.player.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(container.getPos(), Stealer.getFacingDirection(container.getPos()), EnumHand.MAIN_HAND, 0, 0, 0));
                         stolen.add(container.getPos());
-                        auraDelayTimer.reset();
                     }
                 }
             }
+        }
 
-        } else {
-            mc.currentScreen = null;
-            if (!firstDelayTimer.hasTimePassed(firstDelay.getValue().intValue())) return;
-            if (mc.player.openContainer instanceof ContainerChest || mc.player.openContainer instanceof ContainerFurnace || mc.player.openContainer instanceof ContainerBrewingStand) {
-                int lowerChestSize = 0;
-                if (mc.player.openContainer instanceof ContainerChest chest) {
-                    lowerChestSize = chest.getLowerChestInventory().getSizeInventory();
-                }
-                if (mc.player.openContainer instanceof ContainerFurnace furnace) {
-                    lowerChestSize = 3;
-                }
-                if (mc.player.openContainer instanceof ContainerBrewingStand brewingStand) {
-                    lowerChestSize = 5;
-                }
-                List<Integer> slots = new ArrayList<>();
-                for (int i = 0; i < lowerChestSize; i++) {
-                    ItemStack is = mc.player.openContainer.getInventory().get(i);
-                    if (!is.func_190926_b()) {
-                        slots.add(i);
-                    }
-                }
-                if (slots.isEmpty() || isInventoryFull()) {
-                    if (closeTimer.hasTimePassed(closeDelayValue.getValue().intValue())) {
-                        mc.player.closeScreen();
-                    }
-                } else {
-                    Collections.shuffle(slots);
-                    slots.forEach(slot -> {
-                        if (!delayTimer.hasTimePassed(delayValue.getValue().intValue())) {
-                            return;
-                        }
-                        mc.player.connection.sendPacket(new CPacketClickWindow(mc.player.openContainer.windowId, slot, 0, ClickType.QUICK_MOVE, mc.player.openContainer.getSlot(slot).getStack(), mc.player.openContainer.getNextTransactionID(mc.player.inventory)));
-                        delayTimer.reset();
-                    });
-                    closeTimer.reset();
-                }
+
+        if (mc.player.openContainer instanceof ContainerFurnace container) {
+            if (isFurnaceEmpty(container) || isInventoryFull()) {
+                mc.player.closeScreen();
+                Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "熔炉" : "Furnace", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
+                return;
+            }
+            for (int i = 0; i < container.tileFurnace.getSizeInventory(); ++i) {
+                if (container.tileFurnace.getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue())) continue;
+                mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
+                timer.reset();
+            }
+        }
+        if (mc.player.openContainer instanceof ContainerBrewingStand container && timer.hasTimePassed(delay.getValue().intValue())) {
+            if (isBrewingStandEmpty(container) || isInventoryFull()) {
+                mc.player.closeScreen();
+                Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "酿造台" : "BrewingStand", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
+                return;
+            }
+            for (int i = 0; i < container.tileBrewingStand.getSizeInventory(); ++i) {
+                if (container.tileBrewingStand.getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue())) continue;
+                mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
+                timer.reset();
+            }
+        }
+        if (mc.player.openContainer instanceof ContainerChest container && timer.hasTimePassed(delay.getValue().intValue())) {
+            if (isChestEmpty(container) || isInventoryFull()) {
+                mc.player.closeScreen();
+                Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "箱子" : "Chest", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
+                return;
+            }
+            for (int i = 0; i < container.getLowerChestInventory().getSizeInventory(); ++i) {
+                if (container.getLowerChestInventory().getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue())) continue;
+                mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
+                timer.reset();
             }
         }
     }
@@ -141,6 +136,7 @@ public class Stealer extends Mode {
         if (event.getPacket() instanceof CPacketPlayerTryUseItemOnBlock packet) {
             if (mc.currentScreen instanceof GuiContainer) {
                 event.setCancelled(true);
+                DebugHelper.sendMessage("哎呀呀，你已经开启这个容器了呢，不小心又开了一次啦~");
                 return;
             }
             lastC08 = packet.getPos();
@@ -155,8 +151,41 @@ public class Stealer extends Mode {
         }
     }
 
+    @EventTarget
+    private void onWorld(EventWorldLoad eventWorldLoad) {
+        stolen.clear();
+    }
+
     public static boolean checkTitle(ITextComponent textComponent) {
         return textComponent.getFormattedText().toLowerCase().contains(new ItemStack(Blocks.CHEST).getDisplayName().toLowerCase());
+    }
+
+    private boolean isChestEmpty(ContainerChest c) {
+        for (int i = 0; i < 27; ++i) {
+
+            if (!c.getLowerChestInventory().getStackInSlot(i).func_190926_b()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isFurnaceEmpty(ContainerFurnace c) {
+        for (int i = 0; i < 3; ++i) {
+            if (!c.tileFurnace.getStackInSlot(i).func_190926_b()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isBrewingStandEmpty(ContainerBrewingStand c) {
+        for (int i = 0; i < 5; ++i) {
+            if (!c.tileBrewingStand.getStackInSlot(i).func_190926_b()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean isInventoryFull() {

@@ -7,11 +7,11 @@ import net.minecraft.network.play.INetHandlerPlayServer;
 
 public class CPacketPlayer implements Packet<INetHandlerPlayServer>
 {
-    protected double x;
-    protected double y;
-    protected double z;
-    protected float yaw;
-    protected float pitch;
+    public double x;
+    public double y;
+    public double z;
+    public float yaw;
+    public float pitch;
     public boolean onGround;
     public boolean moving;
     public boolean rotating;

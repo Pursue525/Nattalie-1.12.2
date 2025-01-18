@@ -27,7 +27,7 @@ public class AutoArmor extends Mode {
                 ItemStack is;
                 if (!mc.player.inventoryContainer.getSlot(i).getHasStack() || !isBestArmor(is = mc.player.inventoryContainer.getSlot(i).getStack(), type) || !(getProtection(is) > 0.0f)) continue;
 
-                shiftClick(i, type + 4);
+                shiftClick(i, type + 4, false);
                 if (true) continue;
                 return;
             }
@@ -76,10 +76,14 @@ public class AutoArmor extends Mode {
         return prot;
     }
 
-    public static void shiftClick(int slot, int slotI) {
+    public static void shiftClick(int slot, int slotI, boolean move) {
         if (mc.player != null && mc.playerController != null) {
-            mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slot, 0, ClickType.PICKUP, mc.player);
-            mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slotI, 0, ClickType.PICKUP, mc.player);
+            if (!move) {
+                mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slot, 0, ClickType.PICKUP, mc.player);
+                mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slotI, 0, ClickType.PICKUP, mc.player);
+            } else {
+                mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slot, 0, ClickType.QUICK_MOVE, mc.player);
+            }
         }
     }
 

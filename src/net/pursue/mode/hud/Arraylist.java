@@ -60,7 +60,7 @@ public class Arraylist extends Mode {
 
         int heightY = 0;
         for (Mode mode : enableMods) {
-            if (mode.getCategory().equals(Category.HUD) || mode.getCategory().equals(Category.RENDER)) continue;
+            if (mode.getCategory().equals(Category.HUD) || mode.getCategory().equals(Category.RENDER) || mode.getCategory().equals(Category.EXPLOIT)) continue;
 
             float modeSou = 0;
             switch ((mode) modeValue.getValue()) {

@@ -3,6 +3,9 @@
     <output-path>$PROJECT_DIR$/out/artifacts/Nattalie</output-path>
     <root id="archive" name="Nattalie.jar">
       <element id="module-output" name="Nattalie-1.12.2" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libraries/ViaBackwards-5.2.0-downgraded.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libraries/ViaRewind-4.0.4-downgraded.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libraries/ViaVersion-5.2.0-downgraded.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

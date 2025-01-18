@@ -87,7 +87,7 @@ public class HWIDManager {
 
                             if (filePassword.equals(key)) {
                                 if (fileHWID.equals(hwid)) {
-                                    Nattalie.instance.setUSERNAME_KEY(username);
+                                    Nattalie.instance.setUSERNAME(username);
                                     showMessageDialogWithAlwaysOnTop(null, "验证成功！" + username + " 您好！", "验证成功", JOptionPane.INFORMATION_MESSAGE);
                                     saveCredentials(username, key);
 
@@ -106,7 +106,7 @@ public class HWIDManager {
                     int confirmation = showMessageDialogWithAlwaysOnTop(null, "不存在该用户！是否创建？", "验证出错！", JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
 
                     if (confirmation == JOptionPane.YES_OPTION) {
-                        createNewUserAndKey(hwid);
+                        //createNewUserAndKey(hwid);
                     } else {
                         System.exit(0);
                     }
@@ -151,7 +151,7 @@ public class HWIDManager {
         return key;
     }
 
-    private void createNewUserAndKey(String hwid) {
+    public static boolean NewUserEqualsOldUser(String userName) {
         try {
             URL url = new URL("https://raw.gitcode.com/2301_78767572/PursueHWID/raw/master/11410583.txt");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -166,70 +166,37 @@ public class HWIDManager {
                     strings.add(line);
                 }
 
-                String username;
+                for (String lineContent : strings) {
+                    String[] parts = lineContent.split("-");
+                    if (parts.length == 3) {
+                        String name = parts[0].trim();
 
-                while (true) {
-                    username = getInput("请输入新的用户名（禁止中文名）", "创建新的用户名", null);
-                    if (username == null) {
-                        showMessageDialogWithAlwaysOnTop(null, "用户名不能为空！", "错误", JOptionPane.ERROR_MESSAGE);
-                    }
+                        if (!name.equals(userName)) continue;
 
-                    for (String lineContent : strings) {
-                        String[] parts = lineContent.split("-");
-                        if (parts.length == 3) {
-                            String name = parts[0].trim();
-
-                            if (!name.equals(username)) continue;
-
-                            username = null;
-                        }
-                    }
-
-                    if (username == null) {
-                        showMessageDialogWithAlwaysOnTop(null, "该名字已被占用！", "错误", JOptionPane.ERROR_MESSAGE);
-                    } else {
-                        break;
+                        userName = null;
                     }
                 }
-
-                String newKey;
-
-                while (true) {
-                    newKey = getInput("请输入密码（禁止中文密码）", "创建用户", null);
-
-                    if (newKey == null) {
-                        showMessageDialogWithAlwaysOnTop(null, "密码不能为空！", "错误", JOptionPane.ERROR_MESSAGE);
-                    } else break;
-                }
-
-                String combined = username + "-" + newKey + "-" + hwid;
-
-                StringSelection selection = new StringSelection(combined);
-                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-
-                showMessageDialogWithAlwaysOnTop(null, "用户名-密钥已复制到剪贴板，请发给Pursue！\n" + "用户名-密钥: " + combined,
-                        "成功", JOptionPane.INFORMATION_MESSAGE);
-
-                System.exit(0);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        return userName == null;
     }
 
-    private void saveCredentials(String username, String key) {
+    public static void saveCredentials(String username, String key) {
         Properties properties = new Properties();
         properties.setProperty("Name", username);
-        properties.setProperty(Nattalie.instance.getKEY_KEY(), key);
+        properties.setProperty("Key", key);
 
         try (FileOutputStream out = new FileOutputStream(Nattalie.instance.getCONFIG_FILE())) {
-            properties.store(out, "User Credentials");
+            properties.store(out, "User-Credentials");
         } catch (IOException e) {
-            showMessageDialogWithAlwaysOnTop(null, "保存配置失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            System.out.println(e.getMessage());
         }
     }
 
-    private String[] loadCredentials() {
+    public static String[] loadCredentials() {
         Properties properties = new Properties();
         String username = "";
         String key = "";
@@ -237,14 +204,14 @@ public class HWIDManager {
         try (FileInputStream in = new FileInputStream(Nattalie.instance.getCONFIG_FILE())) {
             properties.load(in);
             username = properties.getProperty("Name", "");
-            key = properties.getProperty(Nattalie.instance.getKEY_KEY(), "");
+            key = properties.getProperty(Nattalie.instance.getKEY(), "");
         } catch (IOException e) {
         }
 
         return new String[]{username, key};
     }
 
-    private String getInput(String message, String title, String defaultValue) {
+    private static String getInput(String message, String title, String defaultValue) {
         String input = null;
         while (input == null || input.trim().isEmpty()) {
             input = (String) JOptionPane.showInputDialog(null, message, title, JOptionPane.PLAIN_MESSAGE, null, null, defaultValue);
@@ -255,7 +222,7 @@ public class HWIDManager {
         return input;
     }
 
-    public boolean checkKeyWithRemote(String key) {
+    public static boolean checkKeyWithRemote(String key) {
         try {
             String url = "https://raw.gitcode.com/2301_78767572/PursueHWID/raw/master/hwid.txt";
             boolean hwidExists = new BufferedReader(new InputStreamReader(new URL(url).openStream()))
@@ -272,7 +239,57 @@ public class HWIDManager {
         return false;
     }
 
-    public String generateHardwareId() throws Exception {
+    public static boolean checkHWIDWithRemote(String name, String key, String hwid) {
+        try {
+            URL url = new URL("https://raw.gitcode.com/2301_78767572/PursueHWID/raw/master/11410583.txt");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.connect();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+
+                String line;
+                List<String> fileContent = new ArrayList<>();
+                while ((line = reader.readLine()) != null) {
+                    fileContent.add(line);
+                }
+
+                for (String lineContent : fileContent) {
+                    String[] parts = lineContent.split("-");
+                    if (parts.length == 3) {
+                        String fileUsername = parts[0].trim();
+                        String filePassword = parts[1].trim();
+                        String fileHWID = parts[2].trim();
+
+                        if (!fileUsername.equals(name)) continue;
+
+                        if (filePassword.equals(key)) {
+                            if (fileHWID.equals(hwid)) {
+                                Nattalie.instance.setUSERNAME(name);
+                                saveCredentials(name, key);
+
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                System.exit(0);
+            } finally {
+                connection.disconnect();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return false;
+    }
+
+    public static String generateHardwareId() throws Exception {
         final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         final SystemInfo systemInfo = new SystemInfo();
         final Processor[] processors = systemInfo.getHardware().getProcessors();
@@ -310,6 +327,18 @@ public class HWIDManager {
         dialog.setLocationRelativeTo(null);
 
         return (int) optionPane.getValue();
+    }
+
+    public static boolean isNewClient() {
+        try {
+            return new BufferedReader(new InputStreamReader(new URL("https://raw.gitcode.com/2301_78767572/PursueHWID/raw/master/README.md").openStream()))
+                    .lines()
+                    .collect(Collectors.joining())
+                    .contains(Nattalie.instance.getClientVersion());
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void openWebsite(String url) {

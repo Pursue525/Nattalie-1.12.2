@@ -29,8 +29,10 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.storage.MapData;
+import net.pursue.Nattalie;
 import net.pursue.mode.combat.KillAura;
 import net.pursue.mode.render.Animation;
+import net.pursue.mode.render.Shield;
 import net.pursue.mode.world.WorldManager;
 import net.pursue.utils.player.SpoofSlotUtils;
 import optifine.Config;
@@ -56,6 +58,8 @@ public class ItemRenderer
     private final RenderItem itemRenderer;
 
     private boolean Shield = false;
+
+    private boolean isShield = false;
 
     public ItemRenderer(Minecraft mcIn)
     {
@@ -668,10 +672,19 @@ public class ItemRenderer
         ItemStack itemstack1 = !Shield ? entityplayersp.getHeldItemOffhand().getItem() instanceof ItemShield ? new ItemStack(Blocks.AIR) : entityplayersp.getHeldItemOffhand() : entityplayersp.getHeldItemOffhand();
 
 
-        if (entityplayersp.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword)  {
-            if (!(entityplayersp.getHeldItem(EnumHand.OFF_HAND).getItem() instanceof ItemShield)) entityplayersp.setItemStackToSlot(EntityEquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
-        } else {
+        if (Nattalie.instance.getModeManager().getByClass(net.pursue.mode.render.Shield.class).isEnable()) {
+            if (entityplayersp.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword) {
+                if (!(entityplayersp.getHeldItem(EnumHand.OFF_HAND).getItem() instanceof ItemShield)) {
+                    entityplayersp.setItemStackToSlot(EntityEquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
+                    isShield = true;
+                }
+            } else {
+                entityplayersp.setItemStackToSlot(EntityEquipmentSlot.OFFHAND, new ItemStack(Blocks.AIR));
+                isShield = false;
+            }
+        } else if (isShield) {
             entityplayersp.setItemStackToSlot(EntityEquipmentSlot.OFFHAND, new ItemStack(Blocks.AIR));
+            isShield = false;
         }
 
         if (entityplayersp.isRowingBoat()) {

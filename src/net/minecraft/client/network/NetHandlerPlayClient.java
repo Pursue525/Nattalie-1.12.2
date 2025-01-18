@@ -4,6 +4,8 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.mojang.authlib.GameProfile;
+import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import io.netty.buffer.Unpooled;
 import java.io.File;
 import java.io.IOException;
@@ -257,8 +259,10 @@ import net.minecraft.world.storage.MapData;
 import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
 import net.pursue.event.packet.EventPacket;
+import net.pursue.mode.exploit.Protocol;
 import net.pursue.mode.misc.Disabler;
 import net.pursue.ui.client.MainMenu;
+import net.pursue.utils.player.PacketUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -1297,10 +1301,19 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient
      */
     public void handleConfirmTransaction(SPacketConfirmTransaction packetIn)
     {
+
         PacketThreadUtil.checkThreadAndEnqueue(packetIn, (INetHandlerPlayClient) this, this.gameController);
-
-
         PacketThreadUtil.checkThreadAndEnqueue(packetIn, this, this.gameController);
+
+        if (ViaLoadingBase.getInstance().getTargetVersion().newerThanOrEqualTo(ProtocolVersion.v1_17)) {
+            if (Disabler.instance.getGrimPost()) {
+                Disabler.instance.fixC0F(new CPacketConfirmTransaction(packetIn.getWindowId(), packetIn.getActionNumber(), true));
+            } else {
+                this.sendPacket(new CPacketConfirmTransaction(packetIn.getWindowId(), (short) 0, false));
+            }
+            return;
+        }
+
         Container container = null;
         EntityPlayer entityplayer = this.gameController.player;
 
@@ -2027,6 +2040,10 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient
     public void handleCustomPayload(SPacketCustomPayload packetIn)
     {
         PacketThreadUtil.checkThreadAndEnqueue(packetIn, this, this.gameController);
+
+        if (Nattalie.instance.getModeManager().getByClass(Protocol.class).isEnable()) {
+            Protocol.INSTANCE.processPacket(packetIn);
+        }
 
         if ("MC|TrList".equals(packetIn.getChannelName()))
         {

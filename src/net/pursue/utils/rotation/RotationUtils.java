@@ -34,6 +34,42 @@ public class RotationUtils {
         return new float[] {yaw, pitch};
     }
 
+    public static Entity getLookingAtEntity(double range) {
+        Vec3d playerPos = mc.player.getPositionEyes(1.0f);
+
+        double lookX = -Math.sin(Math.toRadians(SilentRotation.getRotations().x)) * Math.cos(Math.toRadians(SilentRotation.getRotations().y));
+
+        double lookY = -Math.sin(Math.toRadians(SilentRotation.getRotations().y));
+
+        double lookZ = Math.cos(Math.toRadians(SilentRotation.getRotations().x)) * Math.cos(Math.toRadians(SilentRotation.getRotations().y));
+
+        Vec3d lookVec = new Vec3d(lookX, lookY, lookZ).normalize();
+
+        Vec3d targetPoint = playerPos.add(lookVec.scale(range));
+
+        RayTraceResult rayTraceResult = mc.world.rayTraceBlocks(playerPos, targetPoint, false, true, false);
+        if (rayTraceResult != null) {
+            targetPoint = rayTraceResult.hitVec;
+        }
+
+        Entity closestEntity = null;
+        double closestDistance = Double.MAX_VALUE;
+
+        for (Entity entity : mc.world.getEntitiesWithinAABB(Entity.class, mc.player.getEntityBoundingBox().expand(lookVec.xCoord * range, lookVec.yCoord * range, lookVec.zCoord * range))) {
+            if (entity != mc.player) {
+                if (entity.getEntityBoundingBox().intersects(playerPos, targetPoint)) {
+                    double entityDistance = mc.player.getDistance(entity.posX, entity.posY, entity.posZ);
+                    if (entityDistance < closestDistance) {
+                        closestDistance = entityDistance;
+                        closestEntity = entity;
+                    }
+                }
+            }
+        }
+
+        return closestEntity;
+    }
+
     public static Vec3d getVectorForRotation(float pitch, float yaw)
     {
         float f = MathHelper.cos(-yaw * 0.017453292F - (float)Math.PI);

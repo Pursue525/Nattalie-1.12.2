@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import net.minecraft.client.Minecraft;
+import net.pursue.Nattalie;
 import net.pursue.config.configs.HUDConfig;
 import net.pursue.config.configs.ModuleConfig;
 import org.apache.commons.io.FileUtils;
@@ -21,13 +22,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * @author ChengFeng
- * @since 2023/3/19
- */
 public class ConfigManager {
     public static final List<Config> configs = new ArrayList<>();
-    public static final File dir = new File(Minecraft.getMinecraft().mcDataDir, "Nattalie");
+    public static final File dir = new File(new File(Minecraft.getMinecraft().mcDataDir, "Nattalie-1.12.2"), "Configs");
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     public ConfigManager() {

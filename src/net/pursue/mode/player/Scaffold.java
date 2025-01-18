@@ -3,6 +3,7 @@ package net.pursue.mode.player;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
@@ -13,6 +14,7 @@ import net.minecraft.util.math.Vec3d;
 import net.pursue.event.EventTarget;
 import net.pursue.event.player.EventSlot;
 import net.pursue.event.player.EventStrafe;
+import net.pursue.event.update.EventMotion;
 import net.pursue.event.update.EventTick;
 import net.pursue.event.update.EventUpdate;
 import net.pursue.utils.category.Category;
@@ -47,6 +49,7 @@ public class Scaffold extends Mode {
     enum mode {
         Normal,
         Telly,
+        Legit
     }
 
     private final NumberValue<Number> tickDelay = new NumberValue<>(this, "PlaceDelay", 2,1,5,1, () -> modeValue.getValue() == mode.Telly);
@@ -99,6 +102,7 @@ public class Scaffold extends Mode {
         oldSlot = mc.player.inventory.currentItem;
         isScaffold = false;
         blockData = null;
+        mc.player.setSneaking(false);
     }
 
     @Override
@@ -106,6 +110,7 @@ public class Scaffold extends Mode {
         if (mc.player == null) return;
 
         mc.player.inventory.currentItem = oldSlot;
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), false);
         SpoofSlotUtils.stopSpoofSlot();
         isScaffold = false;
         blockData = null;
@@ -128,12 +133,12 @@ public class Scaffold extends Mode {
 
         keepy = keepYModeValue.getValue().equals(keepY.Auto) ? !mc.gameSettings.keyBindJump.isKeyDown() : keepYModeValue.getValue().equals(keepY.Normal);
 
-        blockData = mc.world.getBlockState(mc.player.getPos().down()).getBlock() instanceof BlockAir ? getBlockData(new BlockPos(mc.player.posX, getPosY(), mc.player.posZ)) : null;
+        blockData = !modeValue.getValue().equals(mode.Legit) ? mc.world.getBlockState(mc.player.getPos().down()).getBlock() instanceof BlockAir ? getBlockData(new BlockPos(mc.player.posX, getPosY(), mc.player.posZ)) : null : getBlockData(new BlockPos(mc.player.posX, getPosY(), mc.player.posZ));
 
-        isScaffold = (modeValue.getValue().equals(mode.Normal) || mc.player.offGroundTicks >= tickDelay.getValue().intValue()) && slot >= 0;
+        isScaffold = (modeValue.getValue().equals(mode.Normal) || modeValue.getValue().equals(mode.Legit) || mc.player.offGroundTicks >= tickDelay.getValue().intValue()) && slot >= 0;
 
         if (slot >= 0) {
-            if (isScaffold && autoBlockModeValue.getValue() != autoBlock.Silence) {
+            if (isScaffold) {
                 switch ((autoBlock) autoBlockModeValue.getValue()) {
                     case Normal -> {
                         SpoofSlotUtils.stopSpoofSlot();
@@ -143,11 +148,25 @@ public class Scaffold extends Mode {
                         SpoofSlotUtils.setSlot(oldSlot);
                         mc.player.inventory.currentItem = slot;
                     }
+                    case Silence -> {
+                        //
+                    }
+                }
+            } else {
+                switch ((autoBlock) autoBlockModeValue.getValue()) {
+                    case Normal -> {
+
+                    }
+                    case Spoof -> {
+                        mc.player.inventory.currentItem = oldSlot;
+                    }
+                    case Silence -> {
+                        //
+                    }
                 }
             }
         } else {
             mc.player.inventory.currentItem = oldSlot;
-            SpoofSlotUtils.stopSpoofSlot();
         }
 
         if (isScaffold) {
@@ -157,6 +176,19 @@ public class Scaffold extends Mode {
         } else {
             if (!KillAura.INSTANCE.isEnable() || KillAura.INSTANCE.target == null) {
                 SilentRotation.setTargetRotation(null);
+            }
+        }
+    }
+
+    @EventTarget
+    private void onMotion(EventMotion event) {
+        if (event.getType() == EventMotion.Type.Pre) {
+            if (modeValue.getValue().equals(mode.Legit)) {
+                if (mc.world.getBlockState(new BlockPos(mc.player.posX, mc.player.posY - 1, mc.player.posZ)).getBlock() instanceof BlockAir) {
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), mc.player.onGround);
+                } else {
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), false);
+                }
             }
         }
     }

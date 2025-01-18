@@ -14,6 +14,8 @@ public class FontManager {
     public static RapeMasterFontManager font14;
     public static RapeMasterFontManager font15;
 
+    public static RapeMasterFontManager arial32;
+
     public static RapeMasterFontManager font16;
     public static RapeMasterFontManager font18;
     public static RapeMasterFontManager font19;

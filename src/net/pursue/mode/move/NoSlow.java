@@ -29,6 +29,7 @@ public class NoSlow extends Mode {
 
     enum mode {
         Grim,
+        HighGrim,
         Normal
     }
 
@@ -145,6 +146,12 @@ public class NoSlow extends Mode {
                     slow = false;
                 }
             }
+        } else if (modeValue.getValue().equals(mode.HighGrim)) {
+            if (stack.getItem() instanceof ItemSword) {
+                if (packet instanceof CPacketPlayerTryUseItem tryUseItem && tryUseItem.getHand() == EnumHand.MAIN_HAND) {
+                    event.cancelEvent();
+                }
+            }
         }
     }
 
@@ -203,6 +210,10 @@ public class NoSlow extends Mode {
         }
 
         if (modeValue.getValue().equals(mode.Grim) && InvUtils.isEnchantedGoldenApple(mc.player.getHeldItem(EnumHand.MAIN_HAND)) && mc.player.isHandActive()) {
+            slow = true;
+        }
+
+        if (modeValue.getValue().equals(mode.HighGrim) && mc.player.isHandActive()) {
             slow = true;
         }
     }

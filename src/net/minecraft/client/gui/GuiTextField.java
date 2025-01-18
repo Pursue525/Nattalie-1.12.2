@@ -24,8 +24,8 @@ public class GuiTextField extends Gui
     /** Has the current text being edited on the textbox. */
     private String text = "";
     private int maxStringLength = 32;
-    private int cursorCounter;
-    private boolean enableBackgroundDrawing = true;
+    protected int cursorCounter;
+    protected boolean enableBackgroundDrawing = true;
 
     /**
      * if true the textbox can lose focus by clicking elsewhere on the screen
@@ -40,18 +40,18 @@ public class GuiTextField extends Gui
     /**
      * If this value is true along with isFocused, keyTyped will process the keys.
      */
-    private boolean isEnabled = true;
+    protected boolean isEnabled = true;
 
     /**
      * The current character index that should be used as start of the rendered text.
      */
-    private int lineScrollOffset;
+    protected int lineScrollOffset;
     private int cursorPosition;
 
     /** other selection position, maybe the same as the cursor */
     private int selectionEnd;
-    private int enabledColor = 14737632;
-    private int disabledColor = 7368816;
+    protected int enabledColor = 14737632;
+    protected int disabledColor = 7368816;
 
     /** True if this textbox is visible */
     private boolean visible = true;
@@ -609,7 +609,7 @@ public class GuiTextField extends Gui
     /**
      * Draws the current selection and a vertical line cursor in the text box.
      */
-    private void drawCursorVertical(int startX, int startY, int endX, int endY)
+    protected void drawCursorVertical(int startX, int startY, int endX, int endY)
     {
         if (startX < endX)
         {

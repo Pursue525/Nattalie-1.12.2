@@ -86,6 +86,7 @@ import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
 import net.pursue.event.player.EventMove;
 import net.pursue.event.player.EventSlow;
+import net.pursue.event.player.EventTickMotion;
 import net.pursue.event.update.EventMotion;
 import net.pursue.event.update.EventUpdate;
 import net.pursue.event.world.EventChat;
@@ -93,8 +94,10 @@ import net.pursue.mode.misc.Disabler;
 import net.pursue.mode.move.InvMove;
 import net.pursue.mode.move.NoSlow;
 import net.pursue.mode.move.Sprint;
+import net.pursue.mode.player.AutoHeal;
 import net.pursue.utils.category.MoveCategory;
 import net.pursue.utils.player.MovementUtils;
+import net.pursue.utils.player.PacketUtils;
 import net.pursue.utils.rotation.RotationUtils;
 import net.pursue.utils.rotation.SilentRotation;
 
@@ -152,6 +155,8 @@ public class EntityPlayerSP extends AbstractClientPlayer
     private String serverBrand;
     public MovementInput movementInput;
     protected Minecraft mc;
+
+    public int postTick;
 
     /**
      * Used to tell if the player pressed forward twice. If this is at 0 and it's pressed (And they are allowed to
@@ -265,16 +270,19 @@ public class EntityPlayerSP extends AbstractClientPlayer
                 this.onUpdateWalkingPlayer();
             }
         }
-        EventManager.instance.call(new EventMotion());
+        EventManager.instance.call(new EventMotion(EventMotion.Type.Post));
     }
 
     /**
      * called every tick when the player is on foot. Performs all the things that normally happen during movement.
      */
-    private void onUpdateWalkingPlayer() {
+    private void onUpdateWalkingPlayer()
+    {
+        EventMotion motion = new EventMotion(EventMotion.Type.Pre, this.rotationYaw, this.rotationPitch);
 
-        EventMotion motionPre = new EventMotion(this.onGround, this.posX, this.posY, this.posZ, this.lastReportedPosX, this.lastReportedPosY, this.lastReportedPosZ, this.isSprinting(), this.isSneaking(), this.rotationYaw, this.rotationPitch);
-        EventManager.instance.call(motionPre);
+        EventManager.instance.call(motion);
+
+        boolean flag = this.isSprinting();
 
         if (mc.player.onGround) {
             offGroundTicks = 0;
@@ -284,72 +292,89 @@ public class EntityPlayerSP extends AbstractClientPlayer
             offGroundTicks++;
         }
 
-        boolean flag = motionPre.isSprinting();
-
-
-        if (flag != this.serverSprintState) {
-            if (flag) {
+        if (flag != this.serverSprintState)
+        {
+            if (flag)
+            {
                 this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SPRINTING));
-            } else {
+            }
+            else
+            {
                 this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SPRINTING));
             }
 
             this.serverSprintState = flag;
         }
 
-        boolean flag1 = motionPre.isSneaking();
+        boolean flag1 = this.isSneaking();
 
-        if (flag1 != this.serverSneakState) {
-            if (flag1) {
+        if (flag1 != this.serverSneakState)
+        {
+            if (flag1)
+            {
                 this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SNEAKING));
-            } else {
+            }
+            else
+            {
                 this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SNEAKING));
             }
 
             this.serverSneakState = flag1;
         }
-        if (this.isCurrentViewEntity()) {
-            AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
-            double d0 = motionPre.getX() - motionPre.getLastReportedPosX();
-            double d1 = axisalignedbb.minY - motionPre.getLastReportedPosY();
-            double d2 = motionPre.getZ() - motionPre.getLastReportedPosZ();
-            double d3 = (double) (motionPre.getYaw() - this.lastReportedYaw);
-            double d4 = (double) (motionPre.getPitch() - this.lastReportedPitch);
 
+        if (this.isCurrentViewEntity())
+        {
+            AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
+            double d0 = this.posX - this.lastReportedPosX;
+            double d1 = axisalignedbb.minY - this.lastReportedPosY;
+            double d2 = this.posZ - this.lastReportedPosZ;
+            double d3 = (double)(motion.getRotationYaw() - this.lastReportedYaw);
+            double d4 = (double)(motion.getRotationPitch() - this.lastReportedPitch);
+            ++this.positionUpdateTicks;
             boolean flag2 = d0 * d0 + d1 * d1 + d2 * d2 > 9.0E-4D || this.positionUpdateTicks >= 20;
             boolean flag3 = d3 != 0.0D || d4 != 0.0D;
 
-
-            if (this.isRiding()) {
-                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.motionX, -999.0D, this.motionZ, motionPre.getYaw(), motionPre.getPitch(), motionPre.isGround()));
+            if (this.isRiding())
+            {
+                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.motionX, -999.0D, this.motionZ, motion.getRotationYaw(), motion.getRotationPitch(), this.onGround));
                 flag2 = false;
-            } else if (flag2 && flag3) {
-                this.connection.sendPacket(new CPacketPlayer.PositionRotation(motionPre.getX(), axisalignedbb.minY, motionPre.getZ(), motionPre.getYaw(), motionPre.getPitch(), motionPre.isGround()));
-            } else if (flag2) {
-                this.connection.sendPacket(new CPacketPlayer.Position(motionPre.getX(), axisalignedbb.minY, motionPre.getZ(), motionPre.isGround()));
-            } else if (flag3) {
-                this.connection.sendPacket(new CPacketPlayer.Rotation(motionPre.getYaw(), motionPre.getPitch(), motionPre.isGround()));
-            } else {
-                this.connection.sendPacket(new CPacketPlayer(motionPre.isGround()));
             }
-
-            Disabler.instance.processPackets();
+            else if (flag2 && flag3)
+            {
+                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.posX, axisalignedbb.minY, this.posZ, motion.getRotationYaw(), motion.getRotationPitch(), this.onGround));
+            }
+            else if (flag2)
+            {
+                this.connection.sendPacket(new CPacketPlayer.Position(this.posX, axisalignedbb.minY, this.posZ, this.onGround));
+            }
+            else if (flag3)
+            {
+                this.connection.sendPacket(new CPacketPlayer.Rotation(motion.getRotationYaw(), motion.getRotationPitch(), this.onGround));
+            }
+            else if (this.prevOnGround != this.onGround || AutoHeal.instance.isEnable() && AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple)) {
+                this.connection.sendPacket(new CPacketPlayer(this.onGround));
+            }
 
             if (flag2) {
-                this.lastReportedPosX = motionPre.getX();
+                this.lastReportedPosX = this.posX;
                 this.lastReportedPosY = axisalignedbb.minY;
-                this.lastReportedPosZ = motionPre.getZ();
+                this.lastReportedPosZ = this.posZ;
                 this.positionUpdateTicks = 0;
+                this.postTick = 0;
             }
 
-            ++this.positionUpdateTicks;
+            this.postTick++;
 
-            if (flag3) {
-                this.lastReportedYaw = motionPre.getYaw();
-                this.lastReportedPitch = motionPre.getPitch();
+            Disabler disabler = (Disabler) Nattalie.instance.getModeManager().getByClass(Disabler.class);
+            if (disabler.getGrimPost()) disabler.processPackets();
+
+            if (flag3)
+            {
+                this.lastReportedYaw = motion.getRotationYaw();
+                this.lastReportedPitch = motion.getRotationPitch();
             }
 
-            this.prevOnGround = motionPre.isGround();
+            this.prevOnGround = this.onGround;
             this.autoJumpEnabled = this.mc.gameSettings.autoJump;
         }
     }
@@ -388,6 +413,17 @@ public class EntityPlayerSP extends AbstractClientPlayer
     {
         super.swingArm(hand);
         this.connection.sendPacket(new CPacketAnimation(hand));
+    }
+
+    public void swingArm(EnumHand hand, boolean noEvent)
+    {
+        if (noEvent) {
+            super.swingArm(hand);
+            PacketUtils.sendPacketNoEvent(new CPacketAnimation(hand));
+        } else {
+            super.swingArm(hand);
+            PacketUtils.send(new CPacketAnimation(hand));
+        }
     }
 
     public void respawnPlayer()
@@ -930,15 +966,14 @@ public class EntityPlayerSP extends AbstractClientPlayer
         boolean movingStat = (Math.abs(this.movementInput.field_192832_b) > 0.05f || Math.abs(this.movementInput.moveStrafe) > 0.05f);
         boolean runStrictStrafe = SilentRotation.getTargetRotation() != null && SilentRotation.getCategory() != MoveCategory.Silent;
         boolean noStrafe = SilentRotation.getTargetRotation() == null;
-        boolean isNoSlow = !NoSlow.INSTANCE.isEnable() || !NoSlow.INSTANCE.slow;
 
         if (!movingStat || runStrictStrafe || noStrafe) {
-            isSprintDirection = this.movementInput.field_192832_b > 0.05f && isNoSlow;
+            isSprintDirection = this.movementInput.field_192832_b > 0.05f;
         } else {
             isSprintDirection = Math.abs(RotationUtils.getAngleDifference(MovementUtils.getMovingYaw(), SilentRotation.getTargetRotation().x)) < 67.0f;
         }
 
-        if (!movingStat || (InvMove.instance.isEnable() && !InvMove.instance.sprint)) {
+        if (!movingStat || (InvMove.instance.isEnable() && !InvMove.instance.sprint) || (this.isHandActive() && !NoSlow.INSTANCE.isEnable() || NoSlow.INSTANCE.slow)) {
             isSprintDirection = false;
         }
 
@@ -1037,7 +1072,6 @@ public class EntityPlayerSP extends AbstractClientPlayer
         movingStat = Math.abs(this.movementInput.field_192832_b) > 0.05f || Math.abs(this.movementInput.moveStrafe) > 0.05f;
         runStrictStrafe = SilentRotation.getTargetRotation() != null && SilentRotation.getCategory() != MoveCategory.Silent;
         noStrafe = SilentRotation.getTargetRotation() == null;
-        isNoSlow = !NoSlow.INSTANCE.isEnable() || !NoSlow.INSTANCE.slow;
 
 
         AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
@@ -1047,12 +1081,12 @@ public class EntityPlayerSP extends AbstractClientPlayer
         this.pushOutOfBlocks(this.posX + (double)this.width * 0.35D, axisalignedbb.minY + 0.5D, this.posZ + (double)this.width * 0.35D);
 
         if (!movingStat || runStrictStrafe || noStrafe) {
-            isSprintDirection = this.movementInput.field_192832_b > 0.05f && isNoSlow;
+            isSprintDirection = this.movementInput.field_192832_b > 0.05f;
         }else {
             isSprintDirection = Math.abs(RotationUtils.getAngleDifference(MovementUtils.getMovingYaw(), SilentRotation.getTargetRotation().x)) < 67.0f;
         }
 
-        if (!movingStat || (InvMove.instance.isEnable() && !InvMove.instance.sprint)) {
+        if (!movingStat || (InvMove.instance.isEnable() && !InvMove.instance.sprint) || (this.isHandActive() && !NoSlow.INSTANCE.isEnable() || NoSlow.INSTANCE.slow)) {
             isSprintDirection = false;
         }
         if (Nattalie.instance.getModeManager().getByClass(Sprint.class).isEnable()) {

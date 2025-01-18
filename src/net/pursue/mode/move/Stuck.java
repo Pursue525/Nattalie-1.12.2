@@ -62,9 +62,7 @@ public class Stuck extends Mode {
     @EventTarget
     public void onMove(EventTickMotion eventTickMotion) {
         if (modeValue.getValue().equals(mode.Legit)) {
-            if (mc.player.positionUpdateTicks < 20) {
-                eventTickMotion.cancelEvent();
-            }
+            eventTickMotion.cancelEvent();
         }
     }
 

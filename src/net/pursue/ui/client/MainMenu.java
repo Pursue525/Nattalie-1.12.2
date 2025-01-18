@@ -1,5 +1,6 @@
 package net.pursue.ui.client;
 
+import de.florianmichael.viamcp.gui.GuiProtocolSelector;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
@@ -8,6 +9,7 @@ import net.minecraft.world.WorldServerDemo;
 import net.minecraft.world.storage.ISaveFormat;
 import net.minecraft.world.storage.WorldInfo;
 import net.pursue.Nattalie;
+import net.pursue.ui.gui.PursueGUI;
 import optifine.Reflector;
 
 import java.awt.*;
@@ -27,6 +29,8 @@ public class MainMenu extends GuiScreen {
         this.buttonList.add(new GuiButton(2, 40, 140, 150, 20, I18n.format("menu.multiplayer")));
         this.buttonList.add(new GuiButton(0, 40, 170, 150, 20, I18n.format("menu.options")));
         this.buttonList.add(new GuiButton(4, 40, 200, 150, 20, I18n.format("menu.quit")));
+        this.buttonList.add(new GuiButton(70, 40, 260, 150, 20, "ClickGUI"));
+        this.buttonList.add(new GuiButton(69,40,230,  150, 20, "Version"));
         super.initGui();
     }
 
@@ -71,6 +75,16 @@ public class MainMenu extends GuiScreen {
         if (button.id == 2)
         {
             this.mc.displayGuiScreen(new GuiMultiplayer(this));
+        }
+
+        if (button.id == 69)
+        {
+            this.mc.displayGuiScreen(new GuiProtocolSelector(this));
+        }
+
+        if (button.id == 70)
+        {
+            this.mc.displayGuiScreen(new PursueGUI());
         }
 
         if (button.id == 4)

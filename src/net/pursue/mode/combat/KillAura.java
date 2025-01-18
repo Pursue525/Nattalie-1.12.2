@@ -14,16 +14,20 @@ import net.minecraft.entity.passive.EntityBat;
 import net.minecraft.entity.passive.EntitySquid;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemAppleGold;
 import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.CPacketAnimation;
 import net.minecraft.network.play.client.CPacketPlayerDigging;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
+import net.minecraft.network.play.client.CPacketUseEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.pursue.Nattalie;
 import net.pursue.event.EventTarget;
+import net.pursue.event.packet.EventPacket;
 import net.pursue.event.render.EventRender3D;
 import net.pursue.event.update.EventMotion;
 import net.pursue.event.update.EventUpdate;
@@ -91,6 +95,7 @@ public class KillAura extends Mode {
     private final ColorValue<Integer> circleRGB = new ColorValue<>(this,"CircleRGB", Color.WHITE.getRGB(), circleValue::getValue);
     private final NumberValue<Number> circleAccuracy = new NumberValue<>(this,"CircleAccuracy", 60, 0, 60,5, circleValue::getValue);
     private final BooleanValue<Boolean> swing =new BooleanValue<>(this,"Swing",true);
+    private final BooleanValue<Boolean> rayTrace =new BooleanValue<>(this,"RayTrace",false);
     private final NumberValue<Number> fov = new NumberValue<>(this,"FOV", 180.0,10.0,180.0,10.0);
     private final BooleanValue<Boolean>
             players = new BooleanValue<>(this,"Players", true),
@@ -123,7 +128,7 @@ public class KillAura extends Mode {
     public void disable() {
         if (mc.player == null) return;
 
-        if (isBlock  && mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword) {
+        if (isBlock  && mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && blockModeValue.getValue().equals(blockMode.Normal)) {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
             PacketUtils.send(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
             isBlock = false;
@@ -162,27 +167,32 @@ public class KillAura extends Mode {
             }
             List<EntityLivingBase> targets = getTargets();
 
-            int index = 0;
-            switch ((auraModes) auraModesValue.getValue()) {
-                case Single: {
-                    if (!targets.isEmpty()) {
-                        target = targets.getFirst();
-                    }
-                    break;
-                }
-                case Switch: {
-                    if (!targets.isEmpty()) {
-                        if (targets.size() > 1) {
-                            if (switchTimer.hasTimePassed(delay.getValue().intValue())) {
-                                switchTimer.reset();
-                                ++index;
-                            }
-                        }
-                        if (index >= targets.size()) {
-                            index = 0;
-                        }
 
-                        target = targets.get(index);
+            if (rayTrace.getValue()) {
+                target = mc.objectMouseOver != null && mc.objectMouseOver.typeOfHit == RayTraceResult.Type.ENTITY ? (EntityLivingBase) mc.objectMouseOver.entityHit : null;
+            } else {
+                int index = 0;
+                switch ((auraModes) auraModesValue.getValue()) {
+                    case Single: {
+                        if (!targets.isEmpty()) {
+                            target = targets.getFirst();
+                        }
+                        break;
+                    }
+                    case Switch: {
+                        if (!targets.isEmpty()) {
+                            if (targets.size() > 1) {
+                                if (switchTimer.hasTimePassed(delay.getValue().intValue())) {
+                                    switchTimer.reset();
+                                    ++index;
+                                }
+                            }
+                            if (index >= targets.size()) {
+                                index = 0;
+                            }
+
+                            target = targets.get(index);
+                        }
                     }
                 }
             }
@@ -197,10 +207,12 @@ public class KillAura extends Mode {
 
             if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword) doBlock();
 
-            if (rotationModeValue.getValue() == rotationMode.Legit) {
-                vector2f = RotationUtils.getRotations(target);
+            if (!rayTrace.getValue()) {
+                if (rotationModeValue.getValue() == rotationMode.Legit) {
+                    vector2f = RotationUtils.getRotations(target);
 
-                SilentRotation.setRotation(new Vector2f(vector2f), MoveCategory.valueOf(StrafeValue.getValue().name()));
+                    SilentRotation.setRotation(new Vector2f(vector2f), MoveCategory.valueOf(StrafeValue.getValue().name()));
+                }
             }
 
             if (attackTimer.hasTimePassed((long) (1000.0 / (cps.getValue().intValue() * 1.5)))) {
@@ -212,6 +224,7 @@ public class KillAura extends Mode {
                 mc.playerController.attackEntity(mc.player, target);
                 attackTimer.reset();
             }
+
         } else {
             stopBlock();
         }
@@ -295,7 +308,7 @@ public class KillAura extends Mode {
     }
 
     private void stopBlock() {
-        if (isBlock && mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword) {
+        if (isBlock && mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && blockModeValue.getValue().equals(blockMode.Normal)) {
             isBlock = false;
             PacketUtils.send(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
         } else if (isBlock) {

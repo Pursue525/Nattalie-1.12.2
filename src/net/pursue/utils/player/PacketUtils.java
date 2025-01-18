@@ -1,9 +1,16 @@
 package net.pursue.utils.player;
 
+import io.netty.buffer.Unpooled;
 import net.minecraft.network.EnumConnectionState;
 import net.minecraft.network.EnumPacketDirection;
 import net.minecraft.network.Packet;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.play.client.CPacketCustomPayload;
 import net.pursue.utils.client.UtilsManager;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.zip.GZIPOutputStream;
 
 
 public class PacketUtils extends UtilsManager {
@@ -20,9 +27,15 @@ public class PacketUtils extends UtilsManager {
         return EnumConnectionState.PLAY.getPacketDirection(packet) == EnumPacketDirection.SERVERBOUND;
     }
 
+    public static void sendToServer(String channelName, PacketBuffer buffer) {
+        if (mc.getConnection() == null) return;
+        mc.getConnection().sendPacket(new CPacketCustomPayload(channelName, buffer));
+    }
+
     public static boolean isSPacket(Packet<?> packet) {
         return !isCPacket(packet);
     }
+
 
     public static PacketType getPacketType(Packet<?> packet) {
         String className = packet.getClass().getSimpleName();

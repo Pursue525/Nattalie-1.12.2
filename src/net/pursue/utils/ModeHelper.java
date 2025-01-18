@@ -21,10 +21,16 @@ import net.pursue.utils.client.DebugHelper;
 import net.pursue.utils.render.AnimationUtils;
 import net.pursue.utils.render.RoundedUtils;
 import net.pursue.utils.rotation.RotationUtils;
+import org.apache.commons.io.IOUtils;
 import org.lwjgl.opengl.GL11;
 
 import javax.swing.text.Utilities;
 import java.awt.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Objects;
 
 public class ModeHelper {
 
@@ -34,6 +40,22 @@ public class ModeHelper {
 
     public ModeHelper() {
         EventManager.instance.register(this);
+
+        File fil = new File(Minecraft.getMinecraft().mcDataDir, "Nattalie/VerifyVideo");
+        File file = new File(fil, "Verify.mp4");
+
+        if (!fil.exists()) {
+            fil.mkdir();
+        }
+
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+                unpackFile(file, "assets/minecraft/nattalie/mp4/Verify.mp4");
+            } catch (IOException e) {
+                System.out.print("无法生成视频:  " + e);
+            }
+        }
     }
 
     @EventTarget
@@ -100,5 +122,19 @@ public class ModeHelper {
         GlStateManager.disableBlend();
         RenderHelper.disableStandardItemLighting();
         GlStateManager.popMatrix();
+    }
+
+    public static void unpackFile(File file, String name) throws FileNotFoundException {
+        FileOutputStream fos = new FileOutputStream(file);
+        try {
+            IOUtils.copy(Objects.requireNonNull(ModeHelper.class.getClassLoader().getResourceAsStream(name)), fos);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            fos.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

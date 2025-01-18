@@ -13,8 +13,12 @@ import com.mojang.authlib.GameProfileRepository;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
+
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
@@ -38,6 +42,10 @@ import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
+import javax.swing.*;
+
+import de.florianmichael.vialoadingbase.netty.event.CompressionReorderEvent;
+import de.florianmichael.viamcp.fixes.AttackOrder;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -204,13 +212,16 @@ import net.pursue.event.player.EventScreen;
 import net.pursue.event.update.EventTick;
 import net.pursue.shield.IsShield;
 import net.pursue.ui.client.MainMenu;
+import net.pursue.ui.client.exploit.Disclaimer;
 import net.pursue.ui.font.FontManager;
+import net.pursue.utils.client.DebugHelper;
 import net.pursue.utils.client.HWIDManager;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.Sys;
 import org.lwjgl.input.Keyboard;
@@ -257,6 +268,9 @@ public class Minecraft implements IThreadListener, ISnooperInfo
     private CrashReport crashReporter;
     public int displayWidth;
     public int displayHeight;
+
+    /** HWID */
+    public String hwid;
 
     /** True if the player is connected to a realms server */
     private boolean connectedToRealms;
@@ -332,9 +346,9 @@ public class Minecraft implements IThreadListener, ISnooperInfo
     /**
      * When you place a block, it's set to 6, decremented once per tick, when it's 0, you can place another block.
      */
-    private int rightClickDelayTimer;
-    private String serverName;
-    private int serverPort;
+    public int rightClickDelayTimer;
+    public String serverName;
+    public int serverPort;
 
     /**
      * Does the actual gameplay have focus. If so then mouse and keys will effect the player instead of menus.
@@ -411,6 +425,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
 
     public Minecraft(GameConfiguration gameConfig)
     {
+
         theMinecraft = this;
         this.mcDataDir = gameConfig.folderInfo.mcDataDir;
         this.fileAssets = gameConfig.folderInfo.assetsDir;
@@ -447,6 +462,8 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         this.dataFixer = DataFixesManager.createFixer();
         this.field_193034_aS = new GuiToast(this);
         this.field_193035_aW = new Tutorial(this);
+
+
     }
 
     public void run()
@@ -525,7 +542,12 @@ public class Minecraft implements IThreadListener, ISnooperInfo
     private void startGame() throws LWJGLException, IOException
     {
         Nattalie.instance = new Nattalie();
-        new HWIDManager();
+
+        if (!HWIDManager.isNewClient()) {
+            HWIDManager.openWebsite("https://www.123684.com/s/TBusjv-CZq3d");
+            DebugHelper.displayTray("版本验证", "错误，您的版本是旧版本，已为您跳转网址", TrayIcon.MessageType.INFO);
+            System.exit(-11);
+        }
 
         this.gameSettings = new GameSettings(this, this.mcDataDir);
         this.field_191950_u = new CreativeSettings(this, this.mcDataDir);
@@ -542,7 +564,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         this.setWindowIcon();
         this.setInitialDisplayMode();
 
-        this.createDisplay(Nattalie.instance.getUSERNAME_KEY() + " 您好！欢迎使用Nattalie客户端  祝您开挂愉快~");
+        this.createDisplay("迷你世界国际版-1.12.2 -[" + Nattalie.instance.getClientVersion() +"]");
 
         OpenGlHelper.initializeTextures();
         this.framebufferMc = new Framebuffer(this.displayWidth, this.displayHeight, true);
@@ -616,6 +638,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         this.checkGLError("Post startup");
         this.ingameGUI = new GuiIngame(this);
 
+        /*
         if (this.serverName != null)
         {
             this.displayGuiScreen(new GuiConnecting(new MainMenu(), this, this.serverName, this.serverPort));
@@ -623,6 +646,31 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         else
         {
             this.displayGuiScreen(new MainMenu());
+        }
+
+         */
+
+        try {
+            Nattalie.instance.getPlayer().init(new File(new File(Minecraft.getMinecraft().mcDataDir, Nattalie.instance.getClientName() + "/VerifyVideo"), "Verify.mp4"));
+        } catch (FFmpegFrameGrabber.Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            hwid = HWIDManager.generateHardwareId();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        if (HWIDManager.checkKeyWithRemote(hwid)) {
+            this.displayGuiScreen(new Disclaimer());
+        } else {
+            System.out.println("验证并未通过！");
+            System.out.println("YOU HWID-> " + hwid);
+            StringSelection selection = new StringSelection(hwid);
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+            DebugHelper.displayTray("HWID验证", "错误，您的HWID并未通过，已为您复制好了", TrayIcon.MessageType.INFO);
+            System.exit(-13);
         }
 
         this.renderEngine.deleteTexture(this.mojangLogo);
@@ -647,7 +695,6 @@ public class Minecraft implements IThreadListener, ISnooperInfo
 
         this.renderGlobal.makeEntityOutlineShader();
 
-        Display.setTitle("Nattalie-1.12.2 『User-" + Nattalie.instance.getUSERNAME_KEY() + "』 {" + Nattalie.instance.getClientVersion() + "}");
         Nattalie.instance.start();
     }
 
@@ -697,7 +744,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         this.metadataSerializer_.registerMetadataSectionType(new LanguageMetadataSectionSerializer(), LanguageMetadataSection.class);
     }
 
-    private void createDisplay(String tile) throws LWJGLException
+    public void createDisplay(String tile) throws LWJGLException
     {
         Display.setResizable(true);
         Display.setTitle(tile);
@@ -1625,7 +1672,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
                 switch (this.objectMouseOver.typeOfHit)
                 {
                     case ENTITY:
-                        this.playerController.attackEntity(this.player, this.objectMouseOver.entityHit);
+                        AttackOrder.sendFixedAttack(this.player, this.objectMouseOver.entityHit, EnumHand.MAIN_HAND);
                         break;
 
                     case BLOCK:
@@ -1646,7 +1693,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
                         this.player.resetCooldown();
                 }
 
-                this.player.swingArm(EnumHand.MAIN_HAND);
+                AttackOrder.sendConditionalSwing(this.objectMouseOver, EnumHand.MAIN_HAND);
             }
         }
     }

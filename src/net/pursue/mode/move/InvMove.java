@@ -8,6 +8,7 @@ import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import net.pursue.event.EventTarget;
 import net.pursue.event.update.EventUpdate;
+import net.pursue.mode.hud.ClickGUI;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.value.values.ModeValue;
@@ -41,7 +42,7 @@ public class InvMove extends Mode {
 
         if (isGui()) {
             GameSettings gameSettings = mc.gameSettings;
-            KeyBinding[] keyBindings = {gameSettings.keyBindForward, gameSettings.keyBindBack, gameSettings.keyBindLeft, gameSettings.keyBindRight, gameSettings.keyBindJump, gameSettings.keyBindSprint, gameSettings.keyBindSneak};
+            KeyBinding[] keyBindings = {gameSettings.keyBindForward, gameSettings.keyBindBack, gameSettings.keyBindLeft, gameSettings.keyBindRight, gameSettings.keyBindJump, gameSettings.keyBindSprint};
             for (KeyBinding keyBinding : keyBindings) {
                 KeyBinding.setKeyBindState(keyBinding.getKeyCode(), Keyboard.isKeyDown(keyBinding.getKeyCode()));
             }

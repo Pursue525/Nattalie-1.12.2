@@ -74,6 +74,15 @@ public class RenderUtils {
         GlStateManager.disableBlend();
     }
 
+    public static void drawImage(int x, int y, int width, int height, ResourceLocation image) {
+        GlStateManager.color(1, 1, 1, 1);
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        mc.getTextureManager().bindTexture(image);
+        Gui.drawModalRectWithCustomSizedTexture(x,y,0,0, width, height, width, height);
+        GlStateManager.disableBlend();
+    }
+
     public static Color getColor(int color) {
         int f = color >> 24 & 0xFF;
         int f1 = color >> 16 & 0xFF;

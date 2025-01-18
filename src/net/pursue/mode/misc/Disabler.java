@@ -1,20 +1,25 @@
 package net.pursue.mode.misc;
 
+import net.minecraft.inventory.ClickType;
 import net.minecraft.network.INetHandler;
 import net.minecraft.network.Packet;
 import net.minecraft.network.login.server.SPacketEncryptionRequest;
-import net.minecraft.network.play.client.CPacketConfirmTransaction;
+import net.minecraft.network.play.client.*;
 import net.minecraft.network.play.server.*;
 import net.minecraft.network.status.server.SPacketPong;
 import net.minecraft.network.status.server.SPacketServerInfo;
+import net.minecraft.util.EnumHand;
 import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
+import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
+import net.pursue.event.world.EventWorldLoad;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.mode.player.AutoHeal;
 import net.pursue.mode.player.Blink;
 import net.pursue.utils.player.PacketUtils;
+import net.pursue.utils.rotation.SilentRotation;
 import net.pursue.value.values.BooleanValue;
 
 import java.util.List;
@@ -26,7 +31,8 @@ public class Disabler extends Mode {
     public static Disabler instance;
 
     private final BooleanValue<Boolean> post = new BooleanValue<>(this, "GrimPost-Dis", false);
-    private final BooleanValue<Boolean> badH = new BooleanValue<>(this,"GrimBadH-Dis", false);
+    private final BooleanValue<Boolean> badh = new BooleanValue<>(this,"ViaAnimation-Fix", false);
+    private final BooleanValue<Boolean> high1_17 = new BooleanValue<>(this,"(1.14+)Animation-Fix", false, badh::getValue);
 
     public Disabler() {
         super("Disabler", "禁用器", "禁用一些反作弊检测", Category.MISC);
@@ -37,10 +43,45 @@ public class Disabler extends Mode {
     public static List<Packet<INetHandler>> storedPackets;
     public static ConcurrentLinkedDeque<Integer> pingPackets;
 
+    private boolean animation = false;
+
     static {
         lastResult = false;
         storedPackets = new CopyOnWriteArrayList<Packet<INetHandler>>();
         pingPackets = new ConcurrentLinkedDeque<Integer>();
+    }
+
+    @EventTarget
+    private void onPacket(EventPacket event) {
+        Packet<?> packet = event.getPacket();
+
+        if (badh.getValue()) {
+            if (packet instanceof CPacketAnimation) {
+                animation = true;
+            } else if (packet instanceof CPacketUseEntity) {
+                if (((CPacketUseEntity) packet).getAction() != CPacketUseEntity.Action.ATTACK) return;
+
+                if (!animation) {
+                    mc.player.swingArm(EnumHand.MAIN_HAND, false);
+                }
+                animation = false;
+            } else if (packet instanceof CPacketClickWindow window && window.getClickType() == ClickType.THROW && high1_17.getValue()) {
+                if (!animation) {
+                    mc.player.swingArm(EnumHand.MAIN_HAND, false);
+                }
+                animation = false;
+            } else if (packet instanceof CPacketPlayerDigging digging && (digging.getAction() == CPacketPlayerDigging.Action.DROP_ITEM || digging.getAction() == CPacketPlayerDigging.Action.DROP_ALL_ITEMS) && high1_17.getValue()) {
+                if (!animation) {
+                    mc.player.swingArm(EnumHand.MAIN_HAND, false);
+                }
+                animation = false;
+            }
+        }
+    }
+
+    @EventTarget
+    private void onWorld(EventWorldLoad eventWorldLoad) {
+        animation = false;
     }
 
     public boolean getGrimPost() {

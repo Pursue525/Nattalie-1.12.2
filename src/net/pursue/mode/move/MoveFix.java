@@ -44,7 +44,7 @@ public class MoveFix extends Mode {
     private void onMotion(EventMotion eventMotion) {
         if (eventMotion.getType() == EventMotion.Type.Pre) {
 
-            Map<BlockPos, Block> searchBlock = searchBlocks(5);
+            Map<BlockPos, Block> searchBlock = searchBlocks(7);
 
             if (noLiquidSlow.getValue()) {
                 for (Map.Entry<BlockPos, Block> block : searchBlock.entrySet()) {
@@ -53,7 +53,7 @@ public class MoveFix extends Mode {
                             if (modeValue.getValue().equals(mode.OldGrim)) {
                                 PacketUtils.sendPacketNoEvent(new CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, block.getKey(), EnumFacing.UP));
                             }
-                            mc.player.inWater = false;
+                            mc.world.setBlockToAir(block.getKey());
                         }
                     }
                 }

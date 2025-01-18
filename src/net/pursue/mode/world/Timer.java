@@ -71,15 +71,15 @@ public class Timer extends Mode {
         if (mc.player == null) return;
 
         if (packet instanceof SPacketConfirmTransaction) {
-            inBus.add((Packet<NetHandlerPlayClient>) packet);
             eventPacket.cancelEvent();
+            inBus.add((Packet<NetHandlerPlayClient>) packet);
             PacketUtils.send(new CPacketConfirmTransaction(0, (short) 0,true));
             tick++;
         }
 
         if (packet instanceof SPacketEntityVelocity velocity && velocity.getEntityID() == mc.player.getEntityId()) {
-            inBus.add((Packet<NetHandlerPlayClient>) packet);
             eventPacket.cancelEvent();
+            inBus.add((Packet<NetHandlerPlayClient>) packet);
         }
     }
 }

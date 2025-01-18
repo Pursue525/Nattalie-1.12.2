@@ -5,6 +5,7 @@ import net.minecraft.inventory.ClickType;
 import net.minecraft.inventory.ContainerChest;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.*;
+import net.minecraft.network.play.client.CPacketConfirmTransaction;
 import net.pursue.utils.client.UtilsManager;
 
 public class InvUtils extends UtilsManager {
@@ -23,8 +24,9 @@ public class InvUtils extends UtilsManager {
         mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slot, 1, ClickType.THROW, mc.player);
     }
 
-    public static void shiftClick(int slot) {
-        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slot, 0, ClickType.QUICK_MOVE, mc.player);
+    public static void swapOFF(int inventorySlot) {
+        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, inventorySlot, 0, ClickType.PICKUP, mc.player);
+        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, 45, 0, ClickType.PICKUP, mc.player);
     }
 
     public static void swap(int inventorySlot, int hotbarSlot) {

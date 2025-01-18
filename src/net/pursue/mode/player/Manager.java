@@ -50,8 +50,10 @@ public class Manager extends Mode {
     public final NumberValue<Double> enderPearlSlot = new NumberValue<>(this,"EnderPearlSlot",5.0,1.0,9.0,1.0);
     public final NumberValue<Double> enchantedGappleSlot = new NumberValue<>(this,"Enchanted AppleSlot", 6.0, 1.0, 9.0, 1.0);
     public final NumberValue<Double> gappleSlot = new NumberValue<>(this,"AppleSlot", 7.0, 1.0, 9.0, 1.0);
-    public final NumberValue<Number> delay = new NumberValue<>(this,"ItemDelay", 2.5,0.0,5.0,0.1);
+    public final NumberValue<Number> delay = new NumberValue<>(this,"ItemDelay", 0,0,100,10);
     public final BooleanValue<Boolean> open_inv = new BooleanValue<>(this,"OpenInv", false);
+    private final BooleanValue<Boolean> offGApple = new BooleanValue<>(this,"(1.9+)OFFGApple", false);
+    private final BooleanValue<Boolean> armor = new BooleanValue<>(this,"ArmorClick_Shift", false);
 
     public Manager() {
         super("Manager", "背包管理器", "整理你的背包", Category.PLAYER);
@@ -59,14 +61,11 @@ public class Manager extends Mode {
     }
 
 
-    private final TimerUtils timer = new TimerUtils();
-    private final TimerUtils ItemDelay = new TimerUtils();
     private final TimerUtils timerUtils = new TimerUtils();
 
 
     @Override
     public void enable() {
-        timer.reset();
         timerUtils.reset();
     }
 
@@ -124,77 +123,80 @@ public class Manager extends Mode {
 
         ItemStack stack;
 
-        if (mc.currentScreen == null && mc.player.openContainer.windowId == 0 || open_inv.getValue() && mc.currentScreen instanceof GuiInventory) {
-
+        if ((mc.player.openContainer.windowId == 0 && mc.currentScreen == null) && !open_inv.getValue() || mc.currentScreen instanceof GuiInventory) {
             if ((!AutoHeal.instance.isEnable() || !AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple))) {
-                if (ItemDelay.hasTimePassed(delay.getValue().intValue() * 100L)) {
-                    for (int slotIndex = 9; slotIndex < 45; slotIndex++) {
-                        stack = mc.player.getSlotFromPlayerContainer(slotIndex).getStack();
 
-                        if (shouldDrop(stack)) {
-                            InvUtils.drop(slotIndex);
-                            ItemDelay.reset();
-                        }
+                for (int slotIndex = 9; slotIndex < 46; slotIndex++) {
+                    stack = mc.player.getSlotFromPlayerContainer(slotIndex).getStack();
 
-                        if (isBestSword(stack) && shouldSwap(swordSlot)[0]) {
-                            InvUtils.swap(slotIndex, swordSlot);
-                            ItemDelay.reset();
-                        }
-                        if (isBlock(stack) && shouldSwap(blockSlot)[1] && !(mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().getItem() instanceof ItemBlock) || isBlock(stack) && mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().getItem() instanceof ItemBlock && stack.stackSize > mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().stackSize && mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().stackSize < 3) {
-                            InvUtils.swap(slotIndex, blockSlot);
-                            ItemDelay.reset();
-                        }
+                    if (shouldDrop(stack) && timerUtils.hasTimePassed(delay.getValue().intValue())) {
+                        InvUtils.drop(slotIndex);
+                        timerUtils.reset();
+                    }
 
-                        if (isBestPickaxe(stack) && shouldSwap(pickAxeSlot)[3]) {
-                            InvUtils.swap(slotIndex, pickAxeSlot);
-                            ItemDelay.reset();
-                        }
+                    if (isBestSword(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(swordSlot)[0]) {
+                        InvUtils.swap(slotIndex, swordSlot);
+                        timerUtils.reset();
+                    }
+                    if (isBlock(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(blockSlot)[1] && !(mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().getItem() instanceof ItemBlock) || isBlock(stack) && mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().getItem() instanceof ItemBlock && stack.stackSize > mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().stackSize && mc.player.inventoryContainer.getSlot(blockSlot + 36).getStack().stackSize < 3) {
+                        InvUtils.swap(slotIndex, blockSlot);
+                        timerUtils.reset();
+                    }
 
-                        if (isBestAxe(stack) && shouldSwap(axeSlot)[2]) {
-                            InvUtils.swap(slotIndex, axeSlot);
-                            ItemDelay.reset();
-                        }
+                    if (isBestPickaxe(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(pickAxeSlot)[3]) {
+                        InvUtils.swap(slotIndex, pickAxeSlot);
+                        timerUtils.reset();
+                    }
 
-                        if (isBestBow(stack) && shouldSwap(bowSlot)[6] && !stack.getDisplayName().toLowerCase().contains("kit selector")) {
-                            InvUtils.swap(slotIndex, bowSlot);
-                            ItemDelay.reset();
-                        }
+                    if (isBestAxe(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(axeSlot)[2]) {
+                        InvUtils.swap(slotIndex, axeSlot);
+                        timerUtils.reset();
+                    }
 
-                        if (isEnchantedGoldenApple(stack) && shouldSwap(headSlot)[7]) {
-                            InvUtils.swap(slotIndex, headSlot);
-                            ItemDelay.reset();
-                        }
+                    if (isBestBow(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(bowSlot)[6] && !stack.getDisplayName().toLowerCase().contains("kit selector")) {
+                        InvUtils.swap(slotIndex, bowSlot);
+                        timerUtils.reset();
+                    }
 
-                        if (isProjectiles(stack) && shouldSwap(shovelSlot)[4] && !(mc.player.inventoryContainer.getSlot(headSlot + 36).getStack().getItem() instanceof ItemSnowball || mc.player.inventoryContainer.getSlot(headSlot + 36).getStack().getItem() instanceof ItemEgg)) {
-                            InvUtils.swap(slotIndex, shovelSlot);
-                            ItemDelay.reset();
-                        }
+                    if (isEnchantedGoldenApple(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(headSlot)[7]) {
+                        InvUtils.swap(slotIndex, headSlot);
+                        timerUtils.reset();
+                    }
 
+                    if (isProjectiles(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(shovelSlot)[4] && !(mc.player.inventoryContainer.getSlot(headSlot + 36).getStack().getItem() instanceof ItemSnowball || mc.player.inventoryContainer.getSlot(headSlot + 36).getStack().getItem() instanceof ItemEgg)) {
+                        InvUtils.swap(slotIndex, shovelSlot);
+                        timerUtils.reset();
+                    }
 
-                        if (isGoldenApple(stack) && shouldSwap(gappleSlot)[8] && !(mc.player.inventoryContainer.getSlot(shovelSlot + 36).getStack().getItem() instanceof ItemAppleGold)) {
+                    if (!offGApple.getValue()) {
+                        if (isGoldenApple(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(gappleSlot)[8] && !(mc.player.inventoryContainer.getSlot(shovelSlot + 36).getStack().getItem() instanceof ItemAppleGold)) {
                             InvUtils.swap(slotIndex, gappleSlot);
-                            ItemDelay.reset();
+                            timerUtils.reset();
+                        }
+                    } else {
+                        if (slotIndex != 45 && isGoldenApple(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && !mc.player.inventoryContainer.getSlot(45).getHasStack()) {
+                            InvUtils.swapOFF(slotIndex);
+                            timerUtils.reset();
+                        }
+                    }
+
+                    if (isBestEnderPearl(stack) && timerUtils.hasTimePassed(delay.getValue().intValue()) && shouldSwap(enderPearlSlot)[9]) {
+                        InvUtils.swap(slotIndex, enderPearlSlot);
+                        timerUtils.reset();
+                    }
+
+                    if (stack.getItem() instanceof ItemArmor) {
+                        for (int i = 5; i < 9; i++) {
+                            ItemStack armor = mc.player.getSlotFromPlayerContainer(i).getStack();
+                            if (mc.player.getSlotFromPlayerContainer(i).getHasStack() && !isBestArmor(armor, getArmorType(armor))) {
+                                InvUtils.drop(i);
+                                timerUtils.reset();
+                            }
                         }
 
-                        if (isBestEnderPearl(stack) && shouldSwap(enderPearlSlot)[9]) {
-                            InvUtils.swap(slotIndex, enderPearlSlot);
-                            ItemDelay.reset();
-                        }
-
-                        if (stack.getItem() instanceof ItemArmor) {
-
-                            for (int i = 5; i < 9; i++) {
-                                ItemStack armor = mc.player.getSlotFromPlayerContainer(i).getStack();
-                                if (mc.player.getSlotFromPlayerContainer(i).getHasStack() && !isBestArmor(armor, getArmorType(armor))) {
-                                    InvUtils.drop(i);
-                                    timer.reset();
-                                }
-                            }
-
-                            if (isBestArmor2(stack, getArmorType(stack))) {
-                                AutoArmor.shiftClick(slotIndex, getArmorType(stack) + 4);
-                                timer.reset();
-                            }
+                        if (isBestArmor2(stack, getArmorType(stack))) {
+                            AutoArmor.shiftClick(slotIndex, getArmorType(stack) + 4, armor.getValue());
+                            timerUtils.reset();
                         }
                     }
                 }

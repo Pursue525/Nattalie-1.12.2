@@ -86,9 +86,7 @@ public class AutoHeal extends Mode {
     private void onMotion(EventTickMotion tickMotion) {
         if (modeValue.getValue() == mode.Golden_Apple) {
             if (appleModeValue.getValue().equals(appleMode.Stuck)) {
-                if (mc.player.positionUpdateTicks < 20) {
-                    tickMotion.cancelEvent();
-                }
+                tickMotion.cancelEvent();
             }
         }
     }

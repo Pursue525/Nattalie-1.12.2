@@ -10,6 +10,7 @@ import net.pursue.mode.player.*;
 import net.pursue.mode.render.Animation;
 import net.pursue.mode.render.NameTag;
 
+import net.pursue.mode.render.Shield;
 import net.pursue.mode.world.SpeedMine;
 import net.pursue.mode.world.Timer;
 import net.pursue.mode.world.WorldManager;
@@ -35,6 +36,7 @@ public class ModeManager {
 
         //exploit
         modes.add(new AutoDisMode());
+        modes.add(new Protocol());
 
         //HUD
         modes.add(new ClickGUI());
@@ -58,11 +60,13 @@ public class ModeManager {
         modes.add(new InvMove());
         modes.add(new Stuck());
         modes.add(new MoveFix());
+        modes.add(new Eagle());
         modes.add(new Speed());
 
         // render
         modes.add(new Animation());
         modes.add(new NameTag());
+        modes.add(new Shield());
 
         // player
         modes.add(new AutoHeal());
@@ -71,6 +75,7 @@ public class ModeManager {
         modes.add(new AutoArmor());
         modes.add(new Manager());
         modes.add(new Scaffold());
+        modes.add(new FastPlace());
         modes.add(new Stealer());
 
         // world

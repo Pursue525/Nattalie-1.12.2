@@ -2048,7 +2048,7 @@ public abstract class EntityLivingBase extends Entity
         EventManager.instance.call(tickMotion);
 
         if (this == Minecraft.getMinecraft().player) {
-            if (tickMotion.isCancelled()) return;
+            if (tickMotion.isCancelled() && Minecraft.getMinecraft().player.postTick < 20) return;
         }
 
         if (this.isServerWorld() || this.canPassengerSteer())

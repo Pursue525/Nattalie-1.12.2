@@ -12,10 +12,7 @@ import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
 import net.minecraft.network.Packet;
-import net.minecraft.network.play.client.CPacketAnimation;
-import net.minecraft.network.play.client.CPacketConfirmTransaction;
-import net.minecraft.network.play.client.CPacketEntityAction;
-import net.minecraft.network.play.client.CPacketPlayer;
+import net.minecraft.network.play.client.*;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -33,6 +30,7 @@ import net.pursue.utils.player.FakePlayer;
 import net.pursue.value.values.BooleanValue;
 import net.pursue.value.values.ModeValue;
 import net.pursue.value.values.NumberValue;
+import org.lwjgl.opengl.GL11;
 
 import java.util.*;
 
@@ -51,7 +49,7 @@ public class Blink extends Mode {
     public final BooleanValue<Boolean> antiAimProjectileValue = new BooleanValue<>(this,"Projectile", true, antiAimValue::getValue);
     public final BooleanValue<Boolean> antiAimTNTValue = new BooleanValue<>(this,"TNT", true, antiAimValue::getValue);
     public final BooleanValue<Boolean> antiAimPlayerValue = new BooleanValue<>(this,"Player", true, antiAimValue::getValue);
-    private final NumberValue<Number> slowTick = new NumberValue<>(this, "SlowTick", 3,3,20,1);
+    private final NumberValue<Number> slowTick = new NumberValue<>(this, "SlowTick", 3,1,10,1,() -> modeValue.getValue().equals(mode.Slow));
 
     public Blink() {
         super("Blink", "瞬移", "暂停所有移动发包后本体留原地，关闭后回到当前位置", Category.PLAYER);
@@ -164,7 +162,7 @@ public class Blink extends Mode {
 
         int i = slowTick.getValue().intValue() * 10;
 
-        if (Scaffold.INSTANCE.isScaffold) i = 100;
+        if (Scaffold.INSTANCE.isScaffold) i = 30;
         
         if (modeValue.getValue().equals(mode.Slow)) {
             if (timerUtils.hasTimePassed(i)) {
@@ -318,6 +316,8 @@ public class Blink extends Mode {
             }
         } else if (packet instanceof CPacketAnimation animation) {
             fakePlayer.swingArm(animation.getHand());
+        } else if (packet instanceof CPacketHeldItemChange heldItemChange) {
+            fakePlayer.inventory.currentItem = heldItemChange.getSlotId();
         }
     }
 
