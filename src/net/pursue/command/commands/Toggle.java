@@ -9,6 +9,7 @@ import net.pursue.utils.client.DebugHelper;
 
 public class Toggle
 extends Command {
+
     public Toggle() {
         super("toggle");
     }

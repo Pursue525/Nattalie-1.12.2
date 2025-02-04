@@ -1,12 +1,15 @@
 package net.minecraft.network.play.client;
 
-import java.io.IOException;
+import lombok.Getter;
 import net.minecraft.item.crafting.CraftingManager;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.INetHandlerPlayServer;
 
+import java.io.IOException;
+
+@Getter
 public class CPacketRecipeInfo implements Packet<INetHandlerPlayServer>
 {
     private CPacketRecipeInfo.Purpose field_194157_a;

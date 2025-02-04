@@ -6,10 +6,17 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.client.CPacketCustomPayload;
+import net.minecraft.network.play.server.SPacketCustomPayload;
+import net.pursue.event.EventManager;
+import net.pursue.event.packet.EventPacket;
 import net.pursue.utils.client.DebugHelper;
+import net.pursue.utils.player.PacketUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.UUID;
 
 public class GermManager implements CustomPacket {
     private static final byte[] joinGame1 = new byte[]{0, 0, 0, 26, 20, 71, 85, 73, 36, 109, 97, 105, 110, 109, 101, 110, 117, 64, 101, 110, 116, 114, 121, 47};
@@ -18,9 +25,12 @@ public class GermManager implements CustomPacket {
     public static final byte[] REGISTER_CHANNEL = new byte[]{70, 77, 76, 124, 72, 83, 0, 70, 77, 76, 0, 70, 77, 76, 124, 77, 80, 0, 70, 77, 76, 0, 97, 110, 116, 105, 109, 111, 100, 0, 67, 104, 97, 116, 86, 101, 120, 86, 105, 101, 119, 0, 66, 97, 115, 101, 54, 52, 86, 101, 120, 86, 105, 101, 119, 0, 72, 117, 100, 66, 97, 115, 101, 54, 52, 86, 101, 120, 86, 105, 101, 119, 0, 70, 79, 82, 71, 69, 0, 103, 101, 114, 109, 112, 108, 117, 103, 105, 110, 45, 110, 101, 116, 101, 97, 115, 101, 0, 86, 101, 120, 86, 105, 101, 119, 0, 104, 121, 116, 48, 0, 97, 114, 109, 111, 117, 114, 101, 114, 115, 0, 112, 114, 111, 109, 111, 116, 105, 111, 110};
 
 
-    public static volatile byte[] fullData;
-    public static volatile int currentIndex;
-    public static volatile boolean finalData;
+    private byte[] data;
+    private int size;
+
+    private static void sendToServer(PacketBuffer buffer) {
+        PacketUtils.sendToServer("germmod-netease", buffer);
+    }
 
     @Override
     public String getChannel() {
@@ -30,14 +40,57 @@ public class GermManager implements CustomPacket {
     @Override
     public void process(ByteBuf byteBuf) {
         PacketBuffer packetBuffer1 = new PacketBuffer(byteBuf);
+
         int id = packetBuffer1.readInt();
         switch (id) {
             case -1: {
-                new deserializeGermData(byteBuf.copy());
+                final boolean needResize = packetBuffer1.readBoolean();
+                final int newSize = packetBuffer1.readInt();
+                final boolean isLast = packetBuffer1.readBoolean();
+                final byte[] nextArray = packetBuffer1.readByteArray();
+
+                if (needResize) {
+                    data = new byte[newSize];
+                }
+
+                System.arraycopy(nextArray, 0, data, size, nextArray.length);
+                size += nextArray.length;
+
+                if (isLast) {
+                    ByteBuf byteBufs = Unpooled.wrappedBuffer(data);
+                    final SPacketCustomPayload newWrapper = new SPacketCustomPayload("germplugin-netease", new PacketBuffer(byteBufs));
+
+                    final EventPacket packetReceiveEvent = new EventPacket(newWrapper);
+
+                    EventManager.instance.call(packetReceiveEvent);
+
+                    if (!packetReceiveEvent.isCancelled())
+                        newWrapper.processPacket(mc.getConnection());
+                }
+
                 break;
             }
             case 73: {
-                String s = "没有组队啊";
+                final String type = packetBuffer1.readStringFromBuffer(32767);
+                final String name = packetBuffer1.readStringFromBuffer(32767);
+                final String data = packetBuffer1.readStringFromBuffer(99999999);
+
+                if (type.equalsIgnoreCase("gui")) {
+                    if (name.equalsIgnoreCase("mainmenu")) {
+                        final PacketBuffer newData = new PacketBuffer(Unpooled.buffer());
+
+                        newData.writeInt(4);
+                        newData.writeInt(0);
+                        newData.writeInt(0);
+                        newData.writeString("mainmenu");
+                        newData.writeString("mainmenu");
+                        newData.writeString("mainmenu");
+
+                        reset();
+
+                        sendToServer(newData);
+                    }
+                }
                 break;
             }
             case 76: {
@@ -46,18 +99,23 @@ public class GermManager implements CustomPacket {
                 mc.displayGuiScreen(new GermUI());
                 break;
             }
-            case 67: {
-                break;
-            }
             case 72: {
-                PacketBuffer buffer = new PacketBuffer(Unpooled.buffer());
-                buffer.writeInt(16);
-                buffer.writeString("3.4.2");
-                buffer.writeString(Base64.getEncoder().encodeToString("sb123".getBytes(StandardCharsets.UTF_8)));
-                mc.player.connection.sendPacket(new CPacketCustomPayload("germmod-netease", buffer));
-            }
+                final PacketBuffer data = new PacketBuffer(Unpooled.buffer());
 
+                reset();
+
+                data.writeInt(16);
+                data.writeString("3.4.2");
+                data.writeString(Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)));
+
+                sendToServer(data);
+            }
         }
+    }
+
+    public void reset() {
+        data = null;
+        size = 0;
     }
 
     public static byte[] buildJoinGamePacket(int entry, String sid) {
@@ -131,22 +189,4 @@ public class GermManager implements CustomPacket {
     }
 
      */
-
-    public static class deserializeGermData {
-        public deserializeGermData(ByteBuf buffer) {
-            boolean start = buffer.readBoolean();
-            int fullLength = buffer.readInt();
-            boolean end = buffer.readBoolean();
-            byte[] data = new byte[buffer.readableBytes()];
-            buffer.readBytes(data);
-            if (start) {
-                fullData = new byte[fullLength];
-                currentIndex = 0;
-                finalData = false;
-            } else if (end) {
-                finalData = true;
-            }
-            currentIndex += data.length;
-        }
-    }
 }

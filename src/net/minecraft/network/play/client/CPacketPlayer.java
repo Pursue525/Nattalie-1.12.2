@@ -1,10 +1,13 @@
 package net.minecraft.network.play.client;
 
-import java.io.IOException;
+import lombok.Getter;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.INetHandlerPlayServer;
 
+import java.io.IOException;
+
+@Getter
 public class CPacketPlayer implements Packet<INetHandlerPlayServer>
 {
     public double x;

@@ -157,7 +157,9 @@ public class AutoHeal extends Mode {
                 }
             }
             if (eventMotion.getType() == EventMotion.Type.Post) {
-                packets.add(new CPacketChatMessage());
+                if (tick < 32) {
+                    packets.add(new CPacketChatMessage());
+                }
             }
         }
     }

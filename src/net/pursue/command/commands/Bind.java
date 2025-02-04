@@ -7,7 +7,11 @@ import net.pursue.mode.Mode;
 import net.pursue.utils.client.DebugHelper;
 import org.lwjgl.input.Keyboard;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Bind extends Command {
+
     public Bind() {
         super("Bind");
     }

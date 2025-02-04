@@ -21,9 +21,9 @@ import java.util.List;
 
 public class Target extends Mode {
 
-    private final ColorValue<Integer> stringColor = new ColorValue<>(this, "StringColor", Color.WHITE.getRGB());
+    private final ColorValue<Color> stringColor = new ColorValue<>(this, "StringColor", Color.WHITE);
 
-    private final ColorValue<Integer> healColor = new ColorValue<>(this, "HealColor", Color.WHITE.getRGB());
+    private final ColorValue<Color> healColor = new ColorValue<>(this, "HealColor", Color.WHITE);
 
     public Target() {
         super("Target", "目标", "显示你正在攻击的目标", Category.HUD);

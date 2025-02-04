@@ -40,24 +40,23 @@ public class SilentRotation extends UtilsManager {
 
     @EventTarget
     private void onMotion(EventMotion eventMotion) {
-        if (targetRotation != null) {
-            if (eventMotion.getType() == EventMotion.Type.Pre) {
+        if (eventMotion.getType() == EventMotion.Type.Pre) {
+            if (targetRotation != null) {
                 eventMotion.setRotationYaw(targetRotation.x);
                 eventMotion.setRotationPitch(targetRotation.y);
-            }
-            if (eventMotion.getType() == EventMotion.Type.Post) {
-                targetRotation = null;
+                mc.player.renderYawOffset = targetRotation.x;
+                mc.player.rotationYawHead = targetRotation.x;
             }
         }
     }
 
     @EventTarget
     private void onUpdate(EventUpdate eventUpdate) {
+
         rotations = targetRotation != null ? targetRotation : mc.player.getRotation();
 
         if (targetRotation != null) {
-            mc.player.renderYawOffset = targetRotation.x;
-            mc.player.rotationYawHead = targetRotation.x;
+            targetRotation = null;
         }
     }
 

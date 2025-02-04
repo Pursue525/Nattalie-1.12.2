@@ -6,8 +6,8 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.*;
+import org.lwjgl.util.vector.Vector2f;
 
-import javax.vecmath.Vector2f;
 import javax.vecmath.Vector3d;
 import java.awt.*;
 
@@ -70,6 +70,8 @@ public class RotationUtils {
         return closestEntity;
     }
 
+
+
     public static Vec3d getVectorForRotation(float pitch, float yaw)
     {
         float f = MathHelper.cos(-yaw * 0.017453292F - (float)Math.PI);
@@ -77,6 +79,25 @@ public class RotationUtils {
         float f2 = -MathHelper.cos(-pitch * 0.017453292F);
         float f3 = MathHelper.sin(-pitch * 0.017453292F);
         return new Vec3d((double)(f1 * f2), (double)f3, (double)(f * f2));
+    }
+
+    public static javax.vecmath.Vector2f toRotation(final Vec3d vec, float partialTicks) {
+        final Vec3d eyesPos = new Vec3d(mc.player.posX, mc.player.getEntityBoundingBox().minY +
+                mc.player.getEyeHeight(), mc.player.posZ).addVector(mc.player.motionX * partialTicks, mc.player.motionY * partialTicks, mc.player.motionZ * partialTicks);
+        return new javax.vecmath.Vector2f(RotationNew(eyesPos, vec));
+    }
+
+    public static float[] RotationNew(Vec3d from, Vec3d to) {
+        final Vec3d diff = to.subtract(from);
+
+        float yaw = MathHelper.wrapDegrees(
+                (float) Math.toDegrees(Math.atan2(diff.zCoord, diff.xCoord)) - 90F
+        );
+        float pitch = MathHelper.wrapDegrees(
+                (float) (-Math.toDegrees(Math.atan2(diff.yCoord, Math.sqrt(diff.xCoord * diff.xCoord + diff.zCoord * diff.zCoord))))
+        );
+
+        return new float[] {yaw, pitch};
     }
 
     public static float[] getAngles(Entity entity) {

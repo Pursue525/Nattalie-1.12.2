@@ -139,6 +139,11 @@ public class ModelBiped extends ModelBase
             this.bipedHead.rotateAngleX = headPitch * 0.017453292F;
         }
 
+        if (SilentRotation.getTargetRotation() != null && entityIn instanceof EntityPlayer
+                && entityIn.equals(Minecraft.getMinecraft().player)) {
+            this.bipedHead.rotateAngleX = SilentRotation.getTargetRotation().y / (180F / (float) Math.PI);
+        }
+
         this.bipedBody.rotateAngleY = 0.0F;
         this.bipedRightArm.rotationPointZ = 0.0F;
         this.bipedRightArm.rotationPointX = -5.0F;

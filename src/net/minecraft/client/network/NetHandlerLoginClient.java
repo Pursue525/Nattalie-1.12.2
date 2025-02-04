@@ -7,10 +7,6 @@ import com.mojang.authlib.exceptions.InvalidCredentialsException;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import java.math.BigInteger;
-import java.security.PublicKey;
-import javax.annotation.Nullable;
-import javax.crypto.SecretKey;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDisconnected;
 import net.minecraft.client.gui.GuiScreen;
@@ -32,6 +28,11 @@ import net.pursue.mode.exploit.Protocol;
 import net.pursue.utils.Germ.forge.FMLHandshakeClientState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
+import java.math.BigInteger;
+import java.security.PublicKey;
 
 public class NetHandlerLoginClient implements INetHandlerLoginClient
 {
@@ -106,13 +107,12 @@ public class NetHandlerLoginClient implements INetHandlerLoginClient
 
     public void handleLoginSuccess(SPacketLoginSuccess packetIn)
     {
+        if (Nattalie.instance.getModeManager().getByClass(Protocol.class).isEnable()) {
+            Protocol.forgeChannel.currentState = FMLHandshakeClientState.START;
+        }
         this.gameProfile = packetIn.getProfile();
         this.networkManager.setConnectionState(EnumConnectionState.PLAY);
         this.networkManager.setNetHandler(new NetHandlerPlayClient(this.mc, this.previousGuiScreen, this.networkManager, this.gameProfile));
-
-        if (Nattalie.instance.getModeManager().getByClass(Protocol.class).isEnable()) {
-            Protocol.INSTANCE.forgeChannel.currentState = FMLHandshakeClientState.START;
-        }
     }
 
     /**

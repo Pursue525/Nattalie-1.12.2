@@ -87,6 +87,11 @@ public class Vec3d
         return this.addVector(vec.xCoord, vec.yCoord, vec.zCoord);
     }
 
+    public Vec3d add(double x, double y, double z)
+    {
+        return this.addVector(x, y, z);
+    }
+
     /**
      * Adds the specified x,y,z vector components to this vector and returns the resulting vector. Does not change this
      * vector.

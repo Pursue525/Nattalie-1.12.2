@@ -26,6 +26,7 @@ public class FontManager {
 
     public static RapeMasterFontManager font28;
     public static RapeMasterFontManager font32;
+    public static RapeMasterFontManager font36;
     public static RapeMasterFontManager font34;
     public static RapeMasterFontManager font40;
     public static RapeMasterFontManager font42;
@@ -52,6 +53,7 @@ public class FontManager {
         font26 = new RapeMasterFontManager(getFont("font.ttf", 26));
         font28 = new RapeMasterFontManager(getFont("font.ttf", 28));
         font32 = new RapeMasterFontManager(getFont("font.ttf", 32));
+        font36 = new RapeMasterFontManager(getFont("font.ttf", 36));
         font34 = new RapeMasterFontManager(getFont("font.ttf", 34));
 
         font40 = new RapeMasterFontManager(getFont("font.ttf", 40));

@@ -1,19 +1,16 @@
 package net.minecraft.client.renderer.entity;
 
-import javax.annotation.Nullable;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.EntityRenderer;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.culling.ICamera;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.util.EnumBlockRenderType;
@@ -21,19 +18,31 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.optifine.entity.model.IEntityRenderer;
-import net.pursue.Nattalie;
+import net.pursue.mode.misc.Teams;
 import net.pursue.mode.render.NameTag;
+import net.pursue.ui.font.FontManager;
+import net.pursue.ui.font.RapeMasterFontManager;
+import net.pursue.utils.friend.FriendManager;
+import net.pursue.utils.render.RoundedUtils;
 import optifine.Config;
 import org.lwjgl.opengl.GL11;
 import shadersmod.client.Shaders;
 
+import javax.annotation.Nullable;
+
 public abstract class Render<T extends Entity> implements IEntityRenderer
 {
     private static final ResourceLocation SHADOW_TEXTURES = new ResourceLocation("textures/misc/shadow.png");
-    protected final RenderManager renderManager;
+    protected static RenderManager renderManager;
     public float shadowSize;
+
+    private static float w;
+
+    private float renderY;
+    private float prevRenderY;
 
     /**
      * Determines the darkness of the object's shadow. Higher value makes a darker shadow.
@@ -388,157 +397,147 @@ public abstract class Render<T extends Entity> implements IEntityRenderer
             float f1 = this.renderManager.playerViewX;
             boolean flag1 = this.renderManager.options.thirdPersonView == 2;
             float f2 = entityIn.height + 0.5F - (flag ? 0.25F : 0.0F);
+            renderY = (float) (y + f2);
             int i = "deadmau5".equals(str) ? -10 : 0;
 
+
             if (NameTag.instance.isEnable() && entityIn instanceof EntityPlayer) {
-                this.renderCustomLivingLabel(entityIn, str, x, y, z, 256);
+                str = TextFormatting.WHITE + "[" + TextFormatting.RED + "坏人" + TextFormatting.WHITE + "]";
+                if (Teams.instance.isTeam((EntityLivingBase) entityIn) || FriendManager.isFriend(entityIn.getName())) {
+                    str = TextFormatting.WHITE + "[" + TextFormatting.GREEN + "好人" + TextFormatting.WHITE + "]";
+                }
+
+                if (NameTag.instance.modeValue.getValue().equals(NameTag.mode.Normal)) {
+                    this.drawNameplate(entityIn, str, (float) x, renderY, (float) z, i, f, f1, flag1);
+                    this.renderArmor(entityIn, x, renderY, z, 256);
+                }
             } else {
                 EntityRenderer.drawNameplate(this.getFontRendererFromRenderManager(), str, (float) x, (float) y + f2, (float) z, i, f, f1, flag1, flag);
             }
         }
     }
 
-    public void renderCustomLivingLabel(final T entityIn, final String str, final double x, final double y, final double z, final int maxDistance) {
-        GL11.glPushMatrix();
-        GL11.glEnable(3042);
-        GL11.glDisable(2929);
-        GL11.glNormal3d(0.0, 1.0, 0.0);
+    public void drawNameplate(Entity entityIn, String str, float x, float y, float z, int verticalShift, float viewerYaw, float viewerPitch, boolean isThirdPersonFrontal)
+    {
+
+        RapeMasterFontManager fontManager = FontManager.font24;
+        String name = entityIn.getName() + " " + str;
+
+        double d0 = entityIn.getDistanceSqToEntity(renderManager.livingPlayer);
+
+        final float f = (float) (d0 / 4.3 / 10);
+        float f2 = 0.016666668f * f;
+
+        if (f2 > 0.0889f) {
+            f2 = 0.0889f;
+        } else if (f2 < 0.029f) {
+            f2 = 0.029f;
+        }
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(x, y, z);
+        GlStateManager.glNormal3f(0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(-viewerYaw, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate((float)(isThirdPersonFrontal ? -1 : 1) * viewerPitch, 1.0F, 0.0F, 0.0F);
+        GlStateManager.scale(-f2, -f2, f2);
         GlStateManager.disableLighting();
+        GlStateManager.depthMask(false);
+
+        GlStateManager.disableDepth();
+
         GlStateManager.enableBlend();
-        GL11.glBlendFunc(770, 771);
-        GL11.glDisable(3553);
-        final double d0 = entityIn.getDistanceSqToEntity(this.renderManager.livingPlayer);
-        final boolean b = entityIn instanceof EntityPlayer && NameTag.instance.isEnable();
-        if (d0 <= maxDistance * maxDistance || b) {
-            final FontRenderer fontrenderer = this.getFontRendererFromRenderManager();
+        RoundedUtils.drawRound_Rectangle(fontManager, name, -fontManager.getStringWidth(name) / 2f, verticalShift - 10, 0, NameTag.instance.stringColor.getColor(), NameTag.instance.backGroundColor.getColor(), NameTag.instance.backGroundColor2.getColor(), 10, 6, true);
+        GlStateManager.enableDepth();
+
+        GlStateManager.depthMask(true);
+        GlStateManager.enableLighting();
+        GlStateManager.disableBlend();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.popMatrix();
+    }
+
+    protected void renderArmor(final T entityIn, final double x, final double y, final double z, final int maxDistance) {
+        final double d0 = entityIn.getDistanceSqToEntity(renderManager.livingPlayer);
+        if (d0 <= maxDistance * maxDistance) {
             final float f = (float) (d0 / 4.3 / 10);
             float f2 = 0.016666668f * f;
 
             if (f2 > 0.0889f) {
                 f2 = 0.0889f;
-            } else if (f2 < 0.029) {
+            } else if (f2 < 0.029f) {
                 f2 = 0.029f;
             }
 
             GlStateManager.pushMatrix();
-
-            if (f2 > 0.06f) {
-                GlStateManager.translate((float)x + 0.0f, (float)y + entityIn.height + 1, (float)z);
-            } else {
-                GlStateManager.translate((float)x + 0.0f, (float)y + entityIn.height + 0.5f, (float)z);
-            }
+            GlStateManager.translate((float)x, (float)y + 0.7f, (float)z);
             GL11.glNormal3f(0.0f, 1.0f, 0.0f);
-            GlStateManager.rotate(-this.renderManager.playerViewY, 0.0f, 1.0f, 0.0f);
-
-            GlStateManager.rotate(this.renderManager.playerViewX, 1.0f, 0.0f, 0.0f);
-
+            GlStateManager.rotate(-renderManager.playerViewY, 0.0f, 1.0f, 0.0f);
+            GlStateManager.rotate(renderManager.playerViewX, 1.0f, 0.0f, 0.0f);
             GlStateManager.scale(-f2, -f2, f2);
-
             GlStateManager.disableLighting();
             GlStateManager.depthMask(false);
             GlStateManager.disableDepth();
             GlStateManager.enableBlend();
             GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-            final Tessellator tessellator = Tessellator.getInstance();
-            final BufferBuilder bufferbuilder = tessellator.getBuffer();
-            byte b2 = 0;
-            if (str.equals("deadmau5")) {
-                b2 = -10;
-            }
-            final int i = fontrenderer.getStringWidth(str) / 2;
-            GlStateManager.disableTexture2D();
-            bufferbuilder.begin(7, DefaultVertexFormats.POSITION_COLOR);
-            bufferbuilder.pos(-i - 1, -1 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 0.5f).endVertex();
-            bufferbuilder.pos(-i - 1, 8.5 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 0.5f).endVertex();
-            bufferbuilder.pos(i + 1, 8.5 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 0.5f).endVertex();
-            bufferbuilder.pos(i + 1, -1 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 0.5f).endVertex();
-            tessellator.draw();
-            GL11.glLineWidth(1.0E-4f);
-            bufferbuilder.begin(1, DefaultVertexFormats.POSITION_COLOR);
-            bufferbuilder.pos(-i - 1, -1 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            bufferbuilder.pos(i + 1, -1 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            bufferbuilder.pos(-i - 1, 8.5 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            bufferbuilder.pos(i + 1, 8.5 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            bufferbuilder.pos(-i - 1, -1 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            bufferbuilder.pos(-i - 1, 8.5 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            bufferbuilder.pos(i + 1, -1 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            bufferbuilder.pos(i + 1, 8.5 + b2, 0.0).color(0.0f, 0.0f, 0.0f, 1.0f).endVertex();
-            tessellator.draw();
-            GlStateManager.enableTexture2D();
-            fontrenderer.drawString(str, -fontrenderer.getStringWidth(str) / 2.0f, b2, -1, false);
 
             if (entityIn instanceof EntityPlayer) {
-                Minecraft.getMinecraft().getRenderItem().zLevel = -100.0f;
+                RenderItem renderItem = Minecraft.getMinecraft().getRenderItem();
+                renderItem.zLevel = -100.0f;
 
-                // 渲染主手物品
-                if (((EntityPlayer) entityIn).getHeldItemMainhand() != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer) entityIn).getHeldItemMainhand(), -45, -20);
-                }
+                // 渲染主手装备
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).getHeldItemMainhand(), -63, -20);
 
-                // 渲染头盔（护甲槽3）
-                if (((EntityPlayer) entityIn).inventory.armorItemInSlot(3) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(3), -27, -20);
-                }
+                // 渲染副手装备
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).getHeldItemOffhand(), -45, -20);
 
-                // 渲染胸甲（护甲槽2）
-                if (((EntityPlayer) entityIn).inventory.armorItemInSlot(2) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(2), -9, -20);
-                }
+                // 渲染头盔
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(3), -27, -20);
 
-                // 渲染护腿（护甲槽1）
-                if (((EntityPlayer) entityIn).inventory.armorItemInSlot(1) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(1), 9, -20);
-                }
+                // 渲染胸甲
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(2), -9, -20);
 
-                // 渲染靴子（护甲槽0）
-                if (((EntityPlayer) entityIn).inventory.armorItemInSlot(0) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(0), 27, -20);
-                }
+                // 渲染护腿
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(1), 9, -20);
+
+                // 渲染靴子
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(0), 27, -20);
             }
-
             GlStateManager.enableDepth();
             GlStateManager.depthMask(true);
             if (entityIn instanceof EntityPlayer) {
+                RenderItem renderItem = Minecraft.getMinecraft().getRenderItem();
+
+                // 设置渲染层级
                 Minecraft.getMinecraft().getRenderItem().zLevel = -100.0f;
 
-                // 获取并渲染主手物品
-                if (((EntityPlayer)entityIn).getHeldItemMainhand() != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer)entityIn).getHeldItemMainhand(), -45, -20);
-                }
+                // 渲染主手装备
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).getHeldItemMainhand(), -63, -20);
 
-                // 获取并渲染头盔（护甲槽3）
-                if (((EntityPlayer)entityIn).inventory.armorItemInSlot(3) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer)entityIn).inventory.armorItemInSlot(3), -27, -20);
-                }
+                // 渲染副手装备
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).getHeldItemOffhand(), -45, -20);
 
-                // 获取并渲染胸甲（护甲槽2）
-                if (((EntityPlayer)entityIn).inventory.armorItemInSlot(2) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer)entityIn).inventory.armorItemInSlot(2), -9, -20);
-                }
+                // 渲染头盔
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(3), -27, -20);
 
-                // 获取并渲染护腿（护甲槽1）
-                if (((EntityPlayer)entityIn).inventory.armorItemInSlot(1) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer)entityIn).inventory.armorItemInSlot(1), 9, -20);
-                }
+                // 渲染胸甲
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(2), -9, -20);
 
-                // 获取并渲染靴子（护甲槽0）
-                if (((EntityPlayer)entityIn).inventory.armorItemInSlot(0) != null) {
-                    Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(((EntityPlayer)entityIn).inventory.armorItemInSlot(0), 27, -20);
-                }
+                // 渲染护腿
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(1), 9, -20);
+
+                // 渲染靴子
+                renderItem.renderItemIntoGUI(((EntityPlayer) entityIn).inventory.armorItemInSlot(0), 27, -20);
             }
-
-            fontrenderer.drawString(str, -fontrenderer.getStringWidth(str) / 2.0f, b2, -1, false);
             GlStateManager.enableLighting();
             GlStateManager.disableBlend();
             GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             GlStateManager.popMatrix();
         }
-        GL11.glPopMatrix();
     }
 
-    public RenderManager getRenderManager()
+    public static RenderManager getRenderManager()
     {
-        return this.renderManager;
+        return renderManager;
     }
 
     public boolean isMultipass()

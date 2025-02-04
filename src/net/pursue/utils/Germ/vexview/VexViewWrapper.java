@@ -26,7 +26,7 @@ public class VexViewWrapper {
                 return;
             }
             ByteBuf data = Unpooled.wrappedBuffer(encode("{\"packet_sub_type\":\"" + params.get(0) + "\",\"packet_data\":\"" + params.get(1) + "\",\"packet_type\":\"" + params.get(2) + "\"}"));
-            PacketUtils.send(new CPacketCustomPayload("VexView", new PacketBuffer(data)));
+            Minecraft.getMinecraft().getConnection().getNetworkManager().sendPacket(new CPacketCustomPayload("VexView", new PacketBuffer(data)));
         } catch (Throwable ignored) {}
     }
 
@@ -80,7 +80,7 @@ public class VexViewWrapper {
                 sendDebugPacket(List.of("post", "2.6.10", "ver"));
             }
         } else if (!packetReader.getPacketType().equalsIgnoreCase("gui")) {
-            DebugHelper.sendMessage("[" + TextFormatting.AQUA + "VexView" + TextFormatting.RESET + "] " + packetReader.getPacketType() + ": " + packetReader.getPacketData());
+            DebugHelper.sendMessage("VexView", packetReader.getPacketType() + ": " + packetReader.getPacketData());
         }
     }
 }

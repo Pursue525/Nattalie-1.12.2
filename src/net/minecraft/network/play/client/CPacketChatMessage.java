@@ -1,13 +1,14 @@
 package net.minecraft.network.play.client;
 
-import java.io.IOException;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.INetHandlerPlayServer;
 
+import java.io.IOException;
+
 public class CPacketChatMessage implements Packet<INetHandlerPlayServer>
 {
-    private String message;
+    public String message;
 
     public CPacketChatMessage()
     {

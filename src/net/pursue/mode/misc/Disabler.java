@@ -19,20 +19,20 @@ import net.pursue.mode.Mode;
 import net.pursue.mode.player.AutoHeal;
 import net.pursue.mode.player.Blink;
 import net.pursue.utils.player.PacketUtils;
-import net.pursue.utils.rotation.SilentRotation;
 import net.pursue.value.values.BooleanValue;
-
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.List;
 
 public class Disabler extends Mode {
 
     public static Disabler instance;
 
     private final BooleanValue<Boolean> post = new BooleanValue<>(this, "GrimPost-Dis", false);
-    private final BooleanValue<Boolean> badh = new BooleanValue<>(this,"ViaAnimation-Fix", false);
-    private final BooleanValue<Boolean> high1_17 = new BooleanValue<>(this,"(1.14+)Animation-Fix", false, badh::getValue);
+    private final BooleanValue<Boolean> badh = new BooleanValue<>(this,"GrimBadH-Dis", false);
+    private final BooleanValue<Boolean> highC0E = new BooleanValue<>(this,"(1.14+)Animation-Fix", false);
+    private final BooleanValue<Boolean> highC07 = new BooleanValue<>(this,"(1.14+)DropItem-Fix", false);
+    private final BooleanValue<Boolean> highS0E = new BooleanValue<>(this,"(1.17+)ItemBug-Fix", false);
 
     public Disabler() {
         super("Disabler", "禁用器", "禁用一些反作弊检测", Category.MISC);
@@ -44,6 +44,8 @@ public class Disabler extends Mode {
     public static ConcurrentLinkedDeque<Integer> pingPackets;
 
     private boolean animation = false;
+
+    private boolean isGUI;
 
     static {
         lastResult = false;
@@ -65,23 +67,61 @@ public class Disabler extends Mode {
                     mc.player.swingArm(EnumHand.MAIN_HAND, false);
                 }
                 animation = false;
-            } else if (packet instanceof CPacketClickWindow window && window.getClickType() == ClickType.THROW && high1_17.getValue()) {
-                if (!animation) {
-                    mc.player.swingArm(EnumHand.MAIN_HAND, false);
-                }
-                animation = false;
-            } else if (packet instanceof CPacketPlayerDigging digging && (digging.getAction() == CPacketPlayerDigging.Action.DROP_ITEM || digging.getAction() == CPacketPlayerDigging.Action.DROP_ALL_ITEMS) && high1_17.getValue()) {
-                if (!animation) {
-                    mc.player.swingArm(EnumHand.MAIN_HAND, false);
-                }
-                animation = false;
             }
+        }
+        if (highC0E.getValue()) {
+            if (packet instanceof CPacketClickWindow clickWindow && clickType(clickWindow.getClickType(), clickWindow.getSlotId())) {
+                mc.player.swingArm(EnumHand.MAIN_HAND, false);
+            }
+        }
+
+        if (highC07.getValue()) {
+            if (packet instanceof CPacketPlayerDigging digging) {
+                switch (digging.getAction()) {
+                    case DROP_ITEM -> {
+                        event.cancelEvent();
+
+                        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, mc.player.inventory.currentItem + 36, 0, ClickType.THROW, mc.player);
+                    }
+                    case DROP_ALL_ITEMS -> {
+                        event.cancelEvent();
+
+                        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, mc.player.inventory.currentItem + 36, 1, ClickType.THROW, mc.player);
+                    }
+                }
+            }
+        }
+
+        if (highS0E.getValue()) {
+            if (packet instanceof SPacketWindowItems && !isGUI) {
+                event.cancelEvent();
+            }
+        }
+
+        if (packet instanceof SPacketOpenWindow) {
+            isGUI = true;
+        }
+        if (packet instanceof SPacketCloseWindow || packet instanceof CPacketCloseWindow) {
+            isGUI = false;
         }
     }
 
     @EventTarget
     private void onWorld(EventWorldLoad eventWorldLoad) {
         animation = false;
+        isGUI = false;
+    }
+
+    private boolean clickType(ClickType type, int slotID) {
+        switch (type) {
+            case PICKUP -> {
+                return slotID > 45 || slotID < 0;
+            }
+            case SWAP, QUICK_MOVE, QUICK_CRAFT, CLONE, PICKUP_ALL -> {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean getGrimPost() {
@@ -92,7 +132,6 @@ public class Disabler extends Mode {
                 && (!AutoHeal.instance.isEnable() || AutoHeal.instance.modeValue.getValue() != AutoHeal.mode.Golden_Apple)
                 && !Nattalie.instance.getModeManager().getByClass(Blink.class).isEnable()
                 && mc.player.ticksExisted >= 10;
-
 
         if (lastResult && !result) {
             lastResult = false;

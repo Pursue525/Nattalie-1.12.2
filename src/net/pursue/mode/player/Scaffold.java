@@ -80,7 +80,7 @@ public class Scaffold extends Mode {
     private final BooleanValue<Boolean> swing = new BooleanValue<>(this, "Swing", true);
     public final BooleanValue<Boolean> blocks = new BooleanValue<>(this, "Blocks", true);
 
-    public final ColorValue<Integer> color = new ColorValue<>(this, "Color", Color.WHITE.getRGB(), blocks::getValue);
+    public final ColorValue<Color> color = new ColorValue<>(this, "Color", Color.WHITE, blocks::getValue);
 
     public Scaffold() {
         super("Scaffold", "脚手架", "我走的地方，便有路", Category.PLAYER);
@@ -128,8 +128,8 @@ public class Scaffold extends Mode {
         if (mc.player.onGround) {
             keepYCoord = Math.floor(mc.player.posY - 1);
         }
-        slot = InvUtils.getBlockSlot();
 
+        slot = InvUtils.getBlockSlot();
 
         keepy = keepYModeValue.getValue().equals(keepY.Auto) ? !mc.gameSettings.keyBindJump.isKeyDown() : keepYModeValue.getValue().equals(keepY.Normal);
 
@@ -137,36 +137,20 @@ public class Scaffold extends Mode {
 
         isScaffold = (modeValue.getValue().equals(mode.Normal) || modeValue.getValue().equals(mode.Legit) || mc.player.offGroundTicks >= tickDelay.getValue().intValue()) && slot >= 0;
 
-        if (slot >= 0) {
-            if (isScaffold) {
-                switch ((autoBlock) autoBlockModeValue.getValue()) {
-                    case Normal -> {
-                        SpoofSlotUtils.stopSpoofSlot();
-                        mc.player.inventory.currentItem = slot;
-                    }
-                    case Spoof -> {
-                        SpoofSlotUtils.setSlot(oldSlot);
-                        mc.player.inventory.currentItem = slot;
-                    }
-                    case Silence -> {
-                        //
-                    }
-                }
-            } else {
-                switch ((autoBlock) autoBlockModeValue.getValue()) {
-                    case Normal -> {
-
-                    }
-                    case Spoof -> {
-                        mc.player.inventory.currentItem = oldSlot;
-                    }
-                    case Silence -> {
-                        //
-                    }
+        switch (autoBlockModeValue.getValue()) {
+            case Normal -> {
+                if (isScaffold) {
+                    mc.player.inventory.currentItem = slot;
                 }
             }
-        } else {
-            mc.player.inventory.currentItem = oldSlot;
+
+            case Spoof -> {
+                if (isScaffold) {
+                    mc.player.inventory.currentItem = slot;
+                } else {
+                    mc.player.inventory.currentItem = oldSlot;
+                }
+            }
         }
 
         if (isScaffold) {
@@ -197,6 +181,7 @@ public class Scaffold extends Mode {
     private void onTick(EventTick event) {
         place();
     }
+
 
     @EventTarget
     private void onStrafe(EventStrafe event) {

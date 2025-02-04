@@ -1,5 +1,7 @@
 package net.pursue.mode.combat;
 
+import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
@@ -31,6 +33,7 @@ import net.pursue.event.packet.EventPacket;
 import net.pursue.event.render.EventRender3D;
 import net.pursue.event.update.EventMotion;
 import net.pursue.event.update.EventUpdate;
+import net.pursue.ui.font.FontManager;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.mode.misc.AntiBot;
@@ -41,6 +44,8 @@ import net.pursue.mode.player.Blink;
 import net.pursue.mode.player.Scaffold;
 import net.pursue.shield.IsShield;
 import net.pursue.utils.category.MoveCategory;
+import net.pursue.utils.client.DebugHelper;
+import net.pursue.utils.friend.FriendManager;
 import net.pursue.utils.player.PacketUtils;
 import net.pursue.utils.TimerUtils;
 import net.pursue.utils.render.RenderUtils;
@@ -57,13 +62,24 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+
 @IsShield
 public class KillAura extends Mode {
 
     public static KillAura INSTANCE;
 
     private final NumberValue<Number> cps = new NumberValue<>(this, "CPS", 15,1,20,1);
+
     private final NumberValue<Number> range = new NumberValue<>(this, "Range", 3.35,1.00,8.00,0.01);
+
+    public final BooleanValue<Boolean> rayTrace =new BooleanValue<>(this,"RayTrace",false);
+
+    public final ModeValue<rayMode> rayModeValue = new ModeValue<>(this, "RayTraceMode", rayMode.values(), rayMode.Normal, rayTrace::getValue);
+
+    public enum rayMode {
+        Normal,
+        Legit
+    }
 
     private final ModeValue<auraModes> auraModesValue = new ModeValue<>(this ,"AuraMode", auraModes.values(), auraModes.Switch);
 
@@ -73,6 +89,7 @@ public class KillAura extends Mode {
     }
 
     private final NumberValue<Double> delay = new NumberValue<>(this,"HandoffDelay",100.0,0.0,1000.0,10.0, () -> auraModesValue.getValue().equals(auraModes.Switch));
+
     private final ModeValue<MoveCategory> StrafeValue = new ModeValue<>(this,"StrafeMode", MoveCategory.values(), MoveCategory.Strict);
 
     private final ModeValue<rotationMode> rotationModeValue = new ModeValue<>(this, "RotationMode", rotationMode.values(), rotationMode.Legit);
@@ -91,12 +108,17 @@ public class KillAura extends Mode {
     }
 
     private final BooleanValue<Boolean> circleValue =new BooleanValue<>(this,"Circle",true);
+
     private final BooleanValue<Boolean> box =new BooleanValue<>(this,"Box",true);
-    private final ColorValue<Integer> circleRGB = new ColorValue<>(this,"CircleRGB", Color.WHITE.getRGB(), circleValue::getValue);
+
+    private final ColorValue<Color> circleRGB = new ColorValue<>(this,"CircleRGB", Color.WHITE, circleValue::getValue);
+
     private final NumberValue<Number> circleAccuracy = new NumberValue<>(this,"CircleAccuracy", 60, 0, 60,5, circleValue::getValue);
+
     private final BooleanValue<Boolean> swing =new BooleanValue<>(this,"Swing",true);
-    private final BooleanValue<Boolean> rayTrace =new BooleanValue<>(this,"RayTrace",false);
+
     private final NumberValue<Number> fov = new NumberValue<>(this,"FOV", 180.0,10.0,180.0,10.0);
+
     private final BooleanValue<Boolean>
             players = new BooleanValue<>(this,"Players", true),
             animals = new BooleanValue<>(this,"Animals", false),
@@ -168,7 +190,7 @@ public class KillAura extends Mode {
             List<EntityLivingBase> targets = getTargets();
 
 
-            if (rayTrace.getValue()) {
+            if (rayTrace.getValue() && rayModeValue.getValue().equals(rayMode.Legit)) {
                 target = mc.objectMouseOver != null && mc.objectMouseOver.typeOfHit == RayTraceResult.Type.ENTITY ? (EntityLivingBase) mc.objectMouseOver.entityHit : null;
             } else {
                 int index = 0;
@@ -207,7 +229,7 @@ public class KillAura extends Mode {
 
             if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword) doBlock();
 
-            if (!rayTrace.getValue()) {
+            if (!rayTrace.getValue() || rayModeValue.getValue().equals(rayMode.Normal)) {
                 if (rotationModeValue.getValue() == rotationMode.Legit) {
                     vector2f = RotationUtils.getRotations(target);
 
@@ -215,13 +237,21 @@ public class KillAura extends Mode {
                 }
             }
 
+            EntityLivingBase targetEntity = target;
             if (attackTimer.hasTimePassed((long) (1000.0 / (cps.getValue().intValue() * 1.5)))) {
-                if (swing.getValue()) {
-                    mc.player.swingArm(EnumHand.MAIN_HAND);
-                } else {
-                    PacketUtils.send(new CPacketAnimation(EnumHand.MAIN_HAND));
+                if (rayTrace.getValue() && rayModeValue.getValue().equals(rayMode.Normal)) {
+                    targetEntity = (EntityLivingBase) RotationUtils.getLookingAtEntity(3.3);
                 }
-                mc.playerController.attackEntity(mc.player, target);
+
+                if (targetEntity != null) {
+                    mc.playerController.attackEntity(mc.player, targetEntity);
+
+                    if (swing.getValue()) {
+                        mc.player.swingArm(EnumHand.MAIN_HAND);
+                    } else {
+                        PacketUtils.send(new CPacketAnimation(EnumHand.MAIN_HAND));
+                    }
+                }
                 attackTimer.reset();
             }
 
@@ -317,7 +347,7 @@ public class KillAura extends Mode {
     }
 
     public boolean checkEntity(Entity entity) {
-        if (entity == mc.player) {
+        if (entity == mc.player || FriendManager.isFriend(entity.getName())) {
             return false;
         }
 
@@ -340,7 +370,6 @@ public class KillAura extends Mode {
         if (!RotationUtils.isVisibleFOV(entity, fov.getValue().intValue())) {
             return false;
         }
-
 
         if ((entity instanceof EntityMob || entity instanceof EntitySlime || entity instanceof EntityGhast || entity instanceof EntityDragon) && mobs.getValue()) {
             return !(((EntityLiving) entity).getHealth() <= 0);

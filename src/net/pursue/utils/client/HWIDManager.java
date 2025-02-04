@@ -22,10 +22,7 @@ import java.util.stream.Collectors;
 @IsShield
 public class HWIDManager {
 
-    public HWIDManager() {
-        getHwid();
-    }
-
+    /*
     public void getHwid() {
         String hwid;
         try {
@@ -89,7 +86,7 @@ public class HWIDManager {
                                 if (fileHWID.equals(hwid)) {
                                     Nattalie.instance.setUSERNAME(username);
                                     showMessageDialogWithAlwaysOnTop(null, "验证成功！" + username + " 您好！", "验证成功", JOptionPane.INFORMATION_MESSAGE);
-                                    saveCredentials(username, key);
+                                    saveCredentials(username, key,"");
 
                                     return;
                                 } else {
@@ -130,26 +127,7 @@ public class HWIDManager {
         }
     }
 
-    private String getPasswordInput(String defaultValue) {
-        JPasswordField passwordField = new JPasswordField(20);
-        if (defaultValue != null && !defaultValue.trim().isEmpty()) {
-            passwordField.setText(defaultValue);
-        }
-        String key = null;
-        while (key == null || key.trim().isEmpty()) {
-            int option = showMessageDialogWithAlwaysOnTop(null, passwordField, "请输入您的密钥", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-            if (option == JOptionPane.OK_OPTION) {
-                char[] password = passwordField.getPassword();
-                key = new String(password);
-                if (key == null || key.trim().isEmpty()) {
-                    showMessageDialogWithAlwaysOnTop(null, "密钥不能为空", "错误", JOptionPane.ERROR_MESSAGE);
-                }
-            } else {
-                return null;
-            }
-        }
-        return key;
-    }
+     */
 
     public static boolean NewUserEqualsOldUser(String userName) {
         try {
@@ -184,10 +162,11 @@ public class HWIDManager {
         return userName == null;
     }
 
-    public static void saveCredentials(String username, String key) {
+    public static void saveCredentials(String username, String key, String configName) {
         Properties properties = new Properties();
         properties.setProperty("Name", username);
         properties.setProperty("Key", key);
+        properties.setProperty("Config", configName);
 
         try (FileOutputStream out = new FileOutputStream(Nattalie.instance.getCONFIG_FILE())) {
             properties.store(out, "User-Credentials");
@@ -200,26 +179,17 @@ public class HWIDManager {
         Properties properties = new Properties();
         String username = "";
         String key = "";
+        String configName = "";
 
         try (FileInputStream in = new FileInputStream(Nattalie.instance.getCONFIG_FILE())) {
             properties.load(in);
             username = properties.getProperty("Name", "");
-            key = properties.getProperty(Nattalie.instance.getKEY(), "");
+            key = properties.getProperty("Key", "");
+            configName = properties.getProperty("Config", "");
         } catch (IOException e) {
         }
 
-        return new String[]{username, key};
-    }
-
-    private static String getInput(String message, String title, String defaultValue) {
-        String input = null;
-        while (input == null || input.trim().isEmpty()) {
-            input = (String) JOptionPane.showInputDialog(null, message, title, JOptionPane.PLAIN_MESSAGE, null, null, defaultValue);
-            if (input == null || input.trim().isEmpty()) {
-                showMessageDialogWithAlwaysOnTop(null, "输入不能为空", "错误", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        return input;
+        return new String[]{username, key, configName};
     }
 
     public static boolean checkKeyWithRemote(String key) {
@@ -265,9 +235,6 @@ public class HWIDManager {
 
                         if (filePassword.equals(key)) {
                             if (fileHWID.equals(hwid)) {
-                                Nattalie.instance.setUSERNAME(name);
-                                saveCredentials(name, key);
-
                                 return true;
                             } else {
                                 return false;
@@ -317,16 +284,6 @@ public class HWIDManager {
         dialog.setAlwaysOnTop(true);
         dialog.setVisible(true);
         dialog.setLocationRelativeTo(null);
-    }
-
-    public static int showMessageDialogWithAlwaysOnTop(Component parentComponent, Object message, String title, int Type, int Type2) {
-        JOptionPane optionPane = new JOptionPane(message, Type, Type2);
-        JDialog dialog = optionPane.createDialog(parentComponent, title);
-        dialog.setAlwaysOnTop(true);
-        dialog.setVisible(true);
-        dialog.setLocationRelativeTo(null);
-
-        return (int) optionPane.getValue();
     }
 
     public static boolean isNewClient() {

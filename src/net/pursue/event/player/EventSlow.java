@@ -11,6 +11,7 @@ import net.pursue.event.Event;
 public class EventSlow extends Event {
     private float moveStrafe;
     private float moveForward;
+    private boolean slow;
 
     private int sprintToggleTimer;
 

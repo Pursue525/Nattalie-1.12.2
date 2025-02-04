@@ -8,6 +8,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.pursue.event.EventTarget;
 import net.pursue.event.render.EventRender2D;
+import net.pursue.mode.exploit.ClickGUI;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.ui.font.FontManager;
@@ -20,7 +21,7 @@ import java.awt.*;
 
 public class Effects extends Mode {
 
-    private final ColorValue<Integer> color = new ColorValue<>(this, "Color", Color.WHITE.getRGB());
+    private final ColorValue<Color> color = new ColorValue<>(this, "Color", Color.WHITE);
 
     public Effects() {
         super("Effects", "显示药水", "显示你身上所有的药水效果", Category.HUD);

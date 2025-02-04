@@ -9,7 +9,7 @@ import net.minecraft.world.WorldServerDemo;
 import net.minecraft.world.storage.ISaveFormat;
 import net.minecraft.world.storage.WorldInfo;
 import net.pursue.Nattalie;
-import net.pursue.ui.gui.PursueGUI;
+import net.pursue.ui.gui.Click;
 import optifine.Reflector;
 
 import java.awt.*;
@@ -84,7 +84,7 @@ public class MainMenu extends GuiScreen {
 
         if (button.id == 70)
         {
-            this.mc.displayGuiScreen(new PursueGUI());
+            this.mc.displayGuiScreen(new Click());
         }
 
         if (button.id == 4)

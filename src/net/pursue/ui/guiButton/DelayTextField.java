@@ -4,8 +4,10 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiTextField;
 import net.pursue.utils.TimerUtils;
+import net.pursue.utils.render.RoundedUtils;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class DelayTextField extends GuiTextField {
     private final FontRenderer fontRendererInstance;
@@ -22,7 +24,9 @@ public class DelayTextField extends GuiTextField {
 
     private boolean delays;
 
-    public DelayTextField(int componentId, FontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height, int delay)
+    private boolean fix;
+
+    public DelayTextField(int componentId, FontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height, int delay, boolean fix)
     {
         super(componentId, fontrendererObj, x, y, par5Width, par6Height);
         this.fontRendererInstance = fontrendererObj;
@@ -32,6 +36,7 @@ public class DelayTextField extends GuiTextField {
         this.height = par6Height;
         this.delay = delay;
         this.id = componentId;
+        this.fix = fix;
         delays = false;
     }
 
@@ -50,16 +55,17 @@ public class DelayTextField extends GuiTextField {
         if (timer.hasTimePassed(delay)) {
             if (this.getVisible())
             {
-                if (this.getEnableBackgroundDrawing())
-                {
-                    drawRect(this.xPosition - 1, this.yPosition - 1, this.xPosition + this.width + 1, this.yPosition + this.height + 1, -6250336);
-                    drawRect(this.xPosition, this.yPosition, this.xPosition + this.width, this.yPosition + this.height, -16777216);
-                }
+                RoundedUtils.drawRound(this.xPosition, this.yPosition + this.height - 3, this.width, 1,0, new Color(255,255,255));
 
                 int i = this.isEnabled ? this.enabledColor : this.disabledColor;
                 int j = this.getCursorPosition() - this.lineScrollOffset;
                 int k = this.getSelectionEnd() - this.lineScrollOffset;
                 String s = this.fontRendererInstance.trimStringToWidth(this.getText().substring(this.lineScrollOffset), this.getWidth());
+
+                if (fix) {
+                    s = new String(new char[this.getText().length()]).replace('\0', '*');
+                }
+
                 boolean flag = j >= 0 && j <= s.length();
                 boolean flag1 = this.isFocused() && this.cursorCounter / 6 % 2 == 0 && flag;
                 int l = this.enableBackgroundDrawing ? this.xPosition + 4 : this.xPosition;

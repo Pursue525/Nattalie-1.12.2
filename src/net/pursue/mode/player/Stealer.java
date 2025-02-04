@@ -11,7 +11,6 @@ import net.minecraft.item.ItemAir;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.CPacketClickWindow;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
-import net.minecraft.network.play.server.SPacketBlockAction;
 import net.minecraft.network.play.server.SPacketOpenWindow;
 import net.minecraft.tileentity.TileEntityBrewingStand;
 import net.minecraft.tileentity.TileEntityChest;
@@ -25,19 +24,17 @@ import net.minecraft.util.text.ITextComponent;
 import net.pursue.Nattalie;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
-import net.pursue.event.update.EventTick;
 
 import net.pursue.event.update.EventUpdate;
 import net.pursue.event.world.EventWorldLoad;
 import net.pursue.mode.Mode;
 import net.pursue.mode.combat.KillAura;
-import net.pursue.mode.hud.ClickGUI;
+import net.pursue.mode.exploit.ClickGUI;
 import net.pursue.ui.notification.NotificationType;
 import net.pursue.utils.Block.BezierUtil;
 import net.pursue.utils.TimerUtils;
 import net.pursue.utils.category.Category;
 import net.pursue.utils.client.DebugHelper;
-import net.pursue.utils.player.PacketUtils;
 import net.pursue.value.values.BooleanValue;
 import net.pursue.value.values.NumberValue;
 
@@ -75,56 +72,62 @@ public class Stealer extends Mode {
     @EventTarget
     private void onUpdate(EventUpdate eventUpdate) {
         if (mc.player.openContainer.windowId == 0) {
-            if (arua.getValue() && (!Blink.instance.isEnable() || KillAura.INSTANCE.target != null || Scaffold.INSTANCE.isEnable())) {
-                final var tile = mc.world.loadedTileEntityList.stream()
-                        .filter(container -> container instanceof TileEntityChest || container instanceof TileEntityFurnace || container instanceof TileEntityBrewingStand)
-                        .filter(entity -> !stolen.contains(entity.getPos()))
-                        .filter(tileEntity -> mc.player.getDistance(tileEntity.getPos().getX(), tileEntity.getPos().getY(), tileEntity.getPos().getZ()) <= 4.5F).min(Comparator.comparingDouble(entity -> mc.player.getDistanceSq(entity.getPos())));
-                if (tile.isPresent()) {
-                    final var container = tile.get();
-                    if (mc.currentScreen == null) {
-                        mc.player.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(container.getPos(), Stealer.getFacingDirection(container.getPos()), EnumHand.MAIN_HAND, 0, 0, 0));
-                        stolen.add(container.getPos());
+            if (!Manager.isManager) {
+                if (arua.getValue() && (!Blink.instance.isEnable() || KillAura.INSTANCE.target != null || Scaffold.INSTANCE.isEnable())) {
+                    final var tile = mc.world.loadedTileEntityList.stream()
+                            .filter(container -> container instanceof TileEntityChest || container instanceof TileEntityFurnace || container instanceof TileEntityBrewingStand)
+                            .filter(entity -> !stolen.contains(entity.getPos()))
+                            .filter(tileEntity -> mc.player.getDistance(tileEntity.getPos().getX(), tileEntity.getPos().getY(), tileEntity.getPos().getZ()) <= 3.5F).min(Comparator.comparingDouble(entity -> mc.player.getDistanceSq(entity.getPos())));
+                    if (tile.isPresent()) {
+                        final var container = tile.get();
+                        if (mc.currentScreen == null) {
+                            mc.player.connection.sendPacket(new CPacketPlayerTryUseItemOnBlock(container.getPos(), Stealer.getFacingDirection(container.getPos()), EnumHand.MAIN_HAND, 0, 0, 0));
+                            stolen.add(container.getPos());
+                        }
                     }
                 }
             }
-        }
-
-
-        if (mc.player.openContainer instanceof ContainerFurnace container) {
-            if (isFurnaceEmpty(container) || isInventoryFull()) {
-                mc.player.closeScreen();
-                Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "熔炉" : "Furnace", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
-                return;
-            }
-            for (int i = 0; i < container.tileFurnace.getSizeInventory(); ++i) {
-                if (container.tileFurnace.getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue())) continue;
-                mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
-                timer.reset();
-            }
-        }
-        if (mc.player.openContainer instanceof ContainerBrewingStand container && timer.hasTimePassed(delay.getValue().intValue())) {
-            if (isBrewingStandEmpty(container) || isInventoryFull()) {
-                mc.player.closeScreen();
-                Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "酿造台" : "BrewingStand", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
-                return;
-            }
-            for (int i = 0; i < container.tileBrewingStand.getSizeInventory(); ++i) {
-                if (container.tileBrewingStand.getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue())) continue;
-                mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
-                timer.reset();
-            }
-        }
-        if (mc.player.openContainer instanceof ContainerChest container && timer.hasTimePassed(delay.getValue().intValue())) {
-            if (isChestEmpty(container) || isInventoryFull()) {
-                mc.player.closeScreen();
-                Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "箱子" : "Chest", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
-                return;
-            }
-            for (int i = 0; i < container.getLowerChestInventory().getSizeInventory(); ++i) {
-                if (container.getLowerChestInventory().getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue())) continue;
-                mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
-                timer.reset();
+        } else {
+            if (!Manager.isManager) {
+                if (mc.player.openContainer instanceof ContainerFurnace container) {
+                    if (isFurnaceEmpty(container) || isInventoryFull()) {
+                        mc.player.closeScreen();
+                        Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "熔炉" : "Furnace", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
+                        return;
+                    }
+                    for (int i = 0; i < container.tileFurnace.getSizeInventory(); ++i) {
+                        if (container.tileFurnace.getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue()))
+                            continue;
+                        mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
+                        timer.reset();
+                    }
+                }
+                if (mc.player.openContainer instanceof ContainerBrewingStand container && timer.hasTimePassed(delay.getValue().intValue())) {
+                    if (isBrewingStandEmpty(container) || isInventoryFull()) {
+                        mc.player.closeScreen();
+                        Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "酿造台" : "BrewingStand", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
+                        return;
+                    }
+                    for (int i = 0; i < container.tileBrewingStand.getSizeInventory(); ++i) {
+                        if (container.tileBrewingStand.getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue()))
+                            continue;
+                        mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
+                        timer.reset();
+                    }
+                }
+                if (mc.player.openContainer instanceof ContainerChest container && timer.hasTimePassed(delay.getValue().intValue())) {
+                    if (isChestEmpty(container) || isInventoryFull()) {
+                        mc.player.closeScreen();
+                        Nattalie.instance.getNotificationManager().post(ClickGUI.instance.chinese.getValue() ? "箱子" : "Chest", ClickGUI.instance.chinese.getValue() ? "关闭" : "Closed", 1000, NotificationType.WARNING);
+                        return;
+                    }
+                    for (int i = 0; i < container.getLowerChestInventory().getSizeInventory(); ++i) {
+                        if (container.getLowerChestInventory().getStackInSlot(i).func_190926_b() || !timer.hasTimePassed(delay.getValue().intValue()))
+                            continue;
+                        mc.player.connection.sendPacket(new CPacketClickWindow(container.windowId, i, 0, ClickType.QUICK_MOVE, container.getSlot(i).getStack(), container.getNextTransactionID(mc.player.inventory)));
+                        timer.reset();
+                    }
+                }
             }
         }
     }

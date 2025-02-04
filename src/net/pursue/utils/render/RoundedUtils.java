@@ -30,6 +30,7 @@ public class RoundedUtils {
     public static float height;
 
     public static void drawRound_Rectangle(RapeMasterFontManager fontManager, String string, float x, float y, float radius, Color stringColor, Color backgroundColor, int width, int height, boolean fix) {
+
         if (fix) {
             drawRound(x - 2 - width / 2f, y - height / 2f, fontManager.getStringWidth(string) + 4 + width, fontManager.getHeight() - 4 + height, radius, backgroundColor);
 
@@ -45,6 +46,11 @@ public class RoundedUtils {
         }
         fontManager.drawString(string, x,y, stringColor.getRGB());
 
+    }
+
+    public static void drawRound_Rectangle(RapeMasterFontManager fontManager, String string, float x, float y, float radius, Color stringColor, Color backgroundColor, Color backgroundColor2, int width, int height, boolean fix) {
+        drawRound(x - 2 - width / 2f, (y - height / 2f) - 1, fontManager.getStringWidth(string) + 4 + width, 1, radius, backgroundColor2);
+        drawRound_Rectangle(fontManager, string, x, y, radius, stringColor, backgroundColor, width, height, fix);
     }
 
     public static void drawRound(float x, float y, float width, float height, float radius, Color color) {

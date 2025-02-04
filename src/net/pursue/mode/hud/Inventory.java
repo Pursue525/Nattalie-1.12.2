@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.inventory.Slot;
 import net.pursue.event.EventTarget;
 import net.pursue.event.render.EventRender2D;
+import net.pursue.mode.exploit.ClickGUI;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.ui.font.FontManager;
@@ -19,21 +20,17 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class Inventory extends Mode {
 
-    private final ColorValue<Integer> colorValue = new ColorValue<>(this, "Color", Color.WHITE.getRGB());
+    private final ColorValue<Color> colorValue = new ColorValue<>(this, "Color", Color.WHITE);
 
     public Inventory() {
         super("Inventory", "显示背包", "显示背包中的物品", Category.HUD);
     }
 
-    private int i = 0;
 
     @EventTarget
     private void onRender2D(EventRender2D eventRender2D) {
         int x = 10;
         int y = 30;
-
-        net.minecraft.inventory.Container container = null;
-        String name = "";
 
         if (!HUDManager.data.isEmpty()) for (HUDData data : HUDManager.data) {
             if (data.getTitle().equals(this.getModeName())) {

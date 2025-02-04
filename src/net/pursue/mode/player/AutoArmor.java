@@ -11,7 +11,7 @@ import net.pursue.mode.Mode;
 public class AutoArmor extends Mode {
 
     public AutoArmor() {
-        super("AutoArmor", "自动穿装备", "自动把最好的装备穿上", Category.PLAYER);
+        super("AutoArmor", "自动穿装备", "自动把最好的装备穿上(空壳子)", Category.PLAYER);
     }
 
 

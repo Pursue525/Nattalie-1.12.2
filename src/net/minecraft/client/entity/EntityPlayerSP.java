@@ -1,33 +1,12 @@
 package net.minecraft.client.entity;
 
-import java.util.List;
-import javax.annotation.Nullable;
-import javax.vecmath.Vector2f;
-
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.ElytraSound;
 import net.minecraft.client.audio.MovingSoundMinecartRiding;
 import net.minecraft.client.audio.PositionedSoundRecord;
-import net.minecraft.client.gui.GuiCommandBlock;
-import net.minecraft.client.gui.GuiEnchantment;
-import net.minecraft.client.gui.GuiHopper;
-import net.minecraft.client.gui.GuiMerchant;
-import net.minecraft.client.gui.GuiRepair;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiScreenBook;
-import net.minecraft.client.gui.inventory.GuiBeacon;
-import net.minecraft.client.gui.inventory.GuiBrewingStand;
-import net.minecraft.client.gui.inventory.GuiChest;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.client.gui.inventory.GuiCrafting;
-import net.minecraft.client.gui.inventory.GuiDispenser;
-import net.minecraft.client.gui.inventory.GuiEditCommandBlockMinecart;
-import net.minecraft.client.gui.inventory.GuiEditSign;
-import net.minecraft.client.gui.inventory.GuiEditStructure;
-import net.minecraft.client.gui.inventory.GuiFurnace;
-import net.minecraft.client.gui.inventory.GuiScreenHorseInventory;
-import net.minecraft.client.gui.inventory.GuiShulkerBox;
+import net.minecraft.client.gui.*;
+import net.minecraft.client.gui.inventory.*;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.IJumpingMount;
@@ -48,17 +27,7 @@ import net.minecraft.item.ItemElytra;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.play.client.CPacketAnimation;
-import net.minecraft.network.play.client.CPacketChatMessage;
-import net.minecraft.network.play.client.CPacketClientStatus;
-import net.minecraft.network.play.client.CPacketCloseWindow;
-import net.minecraft.network.play.client.CPacketEntityAction;
-import net.minecraft.network.play.client.CPacketInput;
-import net.minecraft.network.play.client.CPacketPlayer;
-import net.minecraft.network.play.client.CPacketPlayerAbilities;
-import net.minecraft.network.play.client.CPacketPlayerDigging;
-import net.minecraft.network.play.client.CPacketRecipeInfo;
-import net.minecraft.network.play.client.CPacketVehicleMove;
+import net.minecraft.network.play.client.*;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.stats.RecipeBook;
@@ -68,17 +37,8 @@ import net.minecraft.tileentity.CommandBlockBaseLogic;
 import net.minecraft.tileentity.TileEntityCommandBlock;
 import net.minecraft.tileentity.TileEntitySign;
 import net.minecraft.tileentity.TileEntityStructure;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.EnumParticleTypes;
-import net.minecraft.util.MovementInput;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.*;
+import net.minecraft.util.math.*;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.IInteractionObject;
 import net.minecraft.world.World;
@@ -86,7 +46,6 @@ import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
 import net.pursue.event.player.EventMove;
 import net.pursue.event.player.EventSlow;
-import net.pursue.event.player.EventTickMotion;
 import net.pursue.event.update.EventMotion;
 import net.pursue.event.update.EventUpdate;
 import net.pursue.event.world.EventChat;
@@ -100,6 +59,10 @@ import net.pursue.utils.player.MovementUtils;
 import net.pursue.utils.player.PacketUtils;
 import net.pursue.utils.rotation.RotationUtils;
 import net.pursue.utils.rotation.SilentRotation;
+
+import javax.annotation.Nullable;
+import javax.vecmath.Vector2f;
+import java.util.List;
 
 public class EntityPlayerSP extends AbstractClientPlayer
 {
@@ -292,14 +255,10 @@ public class EntityPlayerSP extends AbstractClientPlayer
             offGroundTicks++;
         }
 
-        if (flag != this.serverSprintState)
-        {
-            if (flag)
-            {
+        if (flag != this.serverSprintState) {
+            if (flag) {
                 this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SPRINTING));
-            }
-            else
-            {
+            } else {
                 this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SPRINTING));
             }
 
@@ -324,9 +283,8 @@ public class EntityPlayerSP extends AbstractClientPlayer
 
         if (this.isCurrentViewEntity())
         {
-            AxisAlignedBB axisalignedbb = this.getEntityBoundingBox();
             double d0 = this.posX - this.lastReportedPosX;
-            double d1 = axisalignedbb.minY - this.lastReportedPosY;
+            double d1 = this.posY - this.lastReportedPosY;
             double d2 = this.posZ - this.lastReportedPosZ;
             double d3 = (double)(motion.getRotationYaw() - this.lastReportedYaw);
             double d4 = (double)(motion.getRotationPitch() - this.lastReportedPitch);
@@ -341,11 +299,11 @@ public class EntityPlayerSP extends AbstractClientPlayer
             }
             else if (flag2 && flag3)
             {
-                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.posX, axisalignedbb.minY, this.posZ, motion.getRotationYaw(), motion.getRotationPitch(), this.onGround));
+                this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.posX, this.posY, this.posZ, motion.getRotationYaw(), motion.getRotationPitch(), this.onGround));
             }
             else if (flag2)
             {
-                this.connection.sendPacket(new CPacketPlayer.Position(this.posX, axisalignedbb.minY, this.posZ, this.onGround));
+                this.connection.sendPacket(new CPacketPlayer.Position(this.posX, this.posY, this.posZ, this.onGround));
             }
             else if (flag3)
             {
@@ -357,7 +315,7 @@ public class EntityPlayerSP extends AbstractClientPlayer
 
             if (flag2) {
                 this.lastReportedPosX = this.posX;
-                this.lastReportedPosY = axisalignedbb.minY;
+                this.lastReportedPosY = this.posY;
                 this.lastReportedPosZ = this.posZ;
                 this.positionUpdateTicks = 0;
                 this.postTick = 0;
@@ -963,6 +921,9 @@ public class EntityPlayerSP extends AbstractClientPlayer
 
         boolean isSprintDirection;
 
+        boolean flag4 = (float)this.getFoodStats().getFoodLevel() > 6.0F || this.capabilities.allowFlying;
+
+        boolean isSprint = Sprint.instance.isEnable();
         boolean movingStat = (Math.abs(this.movementInput.field_192832_b) > 0.05f || Math.abs(this.movementInput.moveStrafe) > 0.05f);
         boolean runStrictStrafe = SilentRotation.getTargetRotation() != null && SilentRotation.getCategory() != MoveCategory.Silent;
         boolean noStrafe = SilentRotation.getTargetRotation() == null;
@@ -977,8 +938,10 @@ public class EntityPlayerSP extends AbstractClientPlayer
             isSprintDirection = false;
         }
 
-        if (Nattalie.instance.getModeManager().getByClass(Sprint.class).isEnable()) {
+        if (isSprint && Sprint.instance.modeValue.getValue().equals(Sprint.mode.None) || isSprint && (Sprint.instance.modeValue.getValue().equals(Sprint.mode.V1_14_High) && (!this.isInWater() && !this.isInLava())) || isSprint && (Sprint.instance.modeValue.getValue().equals(Sprint.mode.V1_14_Low) && !(this.movementInput.field_192832_b < 0.8F || this.isCollidedHorizontally))) {
             mc.player.setSprinting(isSprintDirection);
+        } else {
+            mc.player.setSprinting(false);
         }
 
         this.prevTimeInPortal = this.timeInPortal;
@@ -1036,18 +999,18 @@ public class EntityPlayerSP extends AbstractClientPlayer
             --this.timeUntilPortal;
         }
 
+        EventManager.instance.call(new EventMotion(EventMotion.Type.Update));
+
         boolean flag = this.movementInput.jump;
         boolean flag1 = this.movementInput.sneak;
         float f = 0.8F;
         boolean flag2 = this.movementInput.field_192832_b >= 0.8F;
-        boolean flag4 = (float)this.getFoodStats().getFoodLevel() > 6.0F || this.capabilities.allowFlying;
         this.movementInput.updatePlayerMoveState();
         this.mc.func_193032_ao().func_193293_a(this.movementInput);
 
         EventSlow slow = new EventSlow(this.movementInput.moveStrafe, this.movementInput.field_192832_b, this.sprintToggleTimer);
-
+        EventManager.instance.call(slow);
         if (this.isHandActive() && !this.isRiding()) {
-            EventManager.instance.call(slow);
 
             if (slow.isCancelled()) {
                 this.movementInput.moveStrafe *= 1;
@@ -1058,6 +1021,11 @@ public class EntityPlayerSP extends AbstractClientPlayer
                 this.movementInput.field_192832_b *= 0.2F;
                 this.sprintToggleTimer = slow.getSprintToggleTimer();
             }
+        }
+
+        if (slow.isSlow()) {
+            this.movementInput.moveStrafe *= 0.2F;
+            this.movementInput.field_192832_b *= 0.2F;
         }
 
         boolean flag3 = false;
@@ -1089,7 +1057,8 @@ public class EntityPlayerSP extends AbstractClientPlayer
         if (!movingStat || (InvMove.instance.isEnable() && !InvMove.instance.sprint) || (this.isHandActive() && !NoSlow.INSTANCE.isEnable() || NoSlow.INSTANCE.slow)) {
             isSprintDirection = false;
         }
-        if (Nattalie.instance.getModeManager().getByClass(Sprint.class).isEnable()) {
+
+        if (isSprint && Sprint.instance.modeValue.getValue().equals(Sprint.mode.None) || isSprint && (Sprint.instance.modeValue.getValue().equals(Sprint.mode.V1_14_High) && (!this.isInWater() && !this.isInLava())) || isSprint && (Sprint.instance.modeValue.getValue().equals(Sprint.mode.V1_14_Low) && !(this.movementInput.field_192832_b < 0.8F || this.isCollidedHorizontally))) {
             mc.player.setSprinting(isSprintDirection);
         } else {
             if (this.onGround && !flag1 && !flag2 && this.movementInput.field_192832_b >= 0.8F && !this.isSprinting() && flag4 && !this.isHandActive() && !this.isPotionActive(MobEffects.BLINDNESS)) {
@@ -1419,6 +1388,10 @@ public class EntityPlayerSP extends AbstractClientPlayer
 
     public BlockPos getPos() {
         return new BlockPos(mc.player.posX, this.mc.player.posY, this.mc.player.posZ);
+    }
+
+    public BlockPos getPos(int i) {
+        return new BlockPos(mc.player.posX, this.mc.player.posY - i, this.mc.player.posZ);
     }
 
     public Vector2f getRotation() {

@@ -11,7 +11,7 @@ public class Notification extends Mode {
 
     public static Notification INSTANCE;
 
-    public final ColorValue<Integer> colorValue = new ColorValue<>(this, "color", Color.WHITE.getRGB());
+    public final ColorValue<Color> colorValue = new ColorValue<>(this, "color", Color.WHITE);
 
     public Notification() {
         super("Notification", "模块提示", "显示一些提示，如模块开启/关闭", Category.HUD);

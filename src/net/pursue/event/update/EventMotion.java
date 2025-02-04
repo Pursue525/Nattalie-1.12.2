@@ -24,6 +24,7 @@ public class EventMotion extends Event {
 
     public enum Type {
         Pre,
-        Post
+        Post,
+        Update,
     }
 }

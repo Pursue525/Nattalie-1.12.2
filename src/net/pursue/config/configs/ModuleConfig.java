@@ -44,7 +44,12 @@ public class ModuleConfig extends Config {
                 } else if (value instanceof ModeValue) {
                     valuesObject.addProperty(value.getName(), ((ModeValue<?>) value).getValue().toString());
                 } else if (value instanceof ColorValue) {
-                    valuesObject.addProperty(value.getName(), ((ColorValue<?>) value).getColorRGB());
+                    JsonObject colorObject = new JsonObject();
+                    colorObject.addProperty("red", ((ColorValue) value).getRed());
+                    colorObject.addProperty("green", ((ColorValue) value).getGreen());
+                    colorObject.addProperty("blue", ((ColorValue) value).getBlue());
+                    colorObject.addProperty("alpha", ((ColorValue) value).getAlpha());
+                    valuesObject.add(value.getName(), colorObject);
                 }
             }
 
@@ -57,13 +62,15 @@ public class ModuleConfig extends Config {
 
     @Override
     public void loadConfig(JsonObject object) {
-       for (Mode module : Nattalie.instance.getModeManager().getModes()) {
+        for (Mode module : Nattalie.instance.getModeManager().getModes()) {
             if (object.has(module.getModeName())) {
 
                 JsonObject moduleObject = object.get(module.getModeName()).getAsJsonObject();
 
                 if (moduleObject.has("state")) {
-                    module.setEnable(moduleObject.get("state").getAsBoolean());
+                    if (module.isEnable() != moduleObject.get("state").getAsBoolean()) {
+                        module.setEnable(moduleObject.get("state").getAsBoolean());
+                    }
                 }
 
                 if (moduleObject.has("key")) {
@@ -76,15 +83,24 @@ public class ModuleConfig extends Config {
                     for (Value<?> value : module.getValues()) {
                         if (valuesObject.has(value.getName())) {
                             JsonElement theValue = valuesObject.get(value.getName());
-                            if (value instanceof NumberValue) {
-                                ((NumberValue) value).setValue(theValue.getAsNumber().doubleValue());
-                            } else if (value instanceof BooleanValue) {
-                                ((BooleanValue) value).setValue(theValue.getAsBoolean());
-                            } else if (value instanceof ModeValue) {
-                                ((ModeValue) value).setMode(theValue.getAsString());
-                            } else if (value instanceof ColorValue) {
-                                Color color = new Color(theValue.getAsInt());
-                                ((ColorValue) value).setColor(new Color(color.getRed(), color.getGreen(), color.getBlue()).getRGB());
+                            switch (value) {
+                                case NumberValue numberValue ->
+                                        numberValue.setValue(theValue.getAsNumber().doubleValue());
+                                case BooleanValue booleanValue -> booleanValue.setValue(theValue.getAsBoolean());
+                                case ModeValue modeValue -> modeValue.setMode(theValue.getAsString());
+                                case ColorValue colorValue -> {
+                                    if (theValue.isJsonObject()) {
+                                        JsonObject colorObject = theValue.getAsJsonObject();
+                                        int red = colorObject.get("red").getAsInt();
+                                        int green = colorObject.get("green").getAsInt();
+                                        int blue = colorObject.get("blue").getAsInt();
+                                        int alpha = colorObject.get("alpha").getAsInt();
+
+                                        colorValue.setColor(new Color(red, green, blue, alpha));
+                                    }
+                                }
+                                default -> System.out.println("Invalid value: " + theValue);
+
                             }
                         }
                     }

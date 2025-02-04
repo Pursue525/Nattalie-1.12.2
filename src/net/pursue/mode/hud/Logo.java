@@ -15,7 +15,7 @@ import java.awt.*;
 
 public class Logo extends Mode {
 
-    private final ColorValue<Integer> colorValue = new ColorValue<>(this, "color", Color.WHITE.getRGB());
+    private final ColorValue<Color> colorValue = new ColorValue<>(this, "color", Color.WHITE);
 
     public Logo() {
         super("Logo", "客户端标识", "显示出客户端名称", Category.HUD);

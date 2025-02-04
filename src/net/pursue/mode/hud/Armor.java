@@ -63,9 +63,12 @@ public class Armor extends Mode {
         return equipment;
     }
 
-    public static void drawPlayerEquipment(ItemStack[] equipment, float x, float y, boolean transverse) {
+    public static float drawPlayerEquipment(ItemStack[] equipment, float x, float y, boolean transverse) {
         float xOffset = x;
         float yOffset = y;
+
+        float width = 0;
+        float height = 0;
 
         if (transverse) {
             for (ItemStack stack : equipment) {
@@ -73,6 +76,7 @@ public class Armor extends Mode {
                     drawItemStack(stack, xOffset, yOffset);
                 }
                 xOffset += 18;
+                width += 18;
             }
         } else {
             for (ItemStack stack : equipment) {
@@ -80,8 +84,37 @@ public class Armor extends Mode {
                     drawItemStack(stack, xOffset, yOffset);
                 }
                 yOffset += 18;
+                height += 18;
             }
         }
+        return transverse ? width : height;
+    }
+
+    public static float drawPlayerEquipment2(ItemStack[] equipment, float x, float y, boolean transverse) {
+        float xOffset = x;
+        float yOffset = y;
+
+        float width = 0;
+        float height = 0;
+
+        if (transverse) {
+            for (ItemStack stack : equipment) {
+                if (stack != null) {
+                    drawItemStack(stack, xOffset, yOffset);
+                }
+                xOffset -= 18;
+                width += 18;
+            }
+        } else {
+            for (ItemStack stack : equipment) {
+                if (stack != null) {
+                    drawItemStack(stack, xOffset, yOffset);
+                }
+                yOffset -= 18;
+                height += 18;
+            }
+        }
+        return transverse ? width : height;
     }
 
     public static void drawItemStack(ItemStack itemStack, float x, float y) {

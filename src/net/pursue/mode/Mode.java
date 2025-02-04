@@ -1,12 +1,13 @@
 package net.pursue.mode;
 
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.init.SoundEvents;
 import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
-import net.pursue.mode.hud.ClickGUI;
+import net.pursue.mode.exploit.ClickGUI;
 import net.pursue.ui.notification.NotificationType;
 import net.pursue.utils.category.Category;
 import net.pursue.value.Value;
@@ -25,7 +26,8 @@ public class Mode {
 
     private boolean enable;
 
-    private String suffix = null;
+    private final String suffix = null;
+    @Setter
     private int key;
     private final List<Value<?>> values = new ArrayList<>();
 
@@ -65,10 +67,6 @@ public class Mode {
 
             EventManager.instance.unregister(this);
         }
-    }
-
-    public void setKey(int key) {
-        this.key = key;
     }
 
     public String getName() {

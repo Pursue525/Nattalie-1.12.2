@@ -1,6 +1,7 @@
 package net.pursue.command;
 
 import net.pursue.command.commands.Bind;
+import net.pursue.command.commands.Config;
 import net.pursue.command.commands.Toggle;
 import net.pursue.event.EventManager;
 import net.pursue.event.EventTarget;
@@ -19,6 +20,7 @@ public class CommandManager {
     public void init() {
         commands.add(new Bind());
         commands.add(new Toggle());
+        commands.add(new Config());
         EventManager.instance.register(this);
     }
 
@@ -47,11 +49,14 @@ public class CommandManager {
             String commandName = args[0].toLowerCase();
             Command command = getCommandByName(commandName);
 
-            if (args.length == 1 && !args[0].equals("help")) {
-                List<String> suggestions = getCommandSuggestions(commandName);
-                if (!suggestions.isEmpty()) {
-                    DebugHelper.sendMessage("可用指令: " + String.join("| ", suggestions));
-                    return;
+
+            for (Command cmd : commands) {
+                if (args.length == 1 && !(args[0].equals(cmd.getName()) || args[0].equals("help"))) {
+                    List<String> suggestions = getCommandSuggestions(commandName);
+                    if (!suggestions.isEmpty()) {
+                        DebugHelper.sendMessage("可用指令: " + String.join("| ", suggestions));
+                        return;
+                    }
                 }
             }
 

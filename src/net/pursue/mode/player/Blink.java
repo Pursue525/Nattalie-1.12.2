@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.IProjectile;
 import net.minecraft.entity.item.EntityTNTPrimed;
@@ -11,6 +12,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.*;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -37,9 +39,9 @@ import java.util.*;
 public class Blink extends Mode {
 
     public static Blink instance;
-    private final ModeValue<mode> modeValue = new ModeValue<>(this, "Mode", mode.values(), mode.Normal);
+    public final ModeValue<mode> modeValue = new ModeValue<>(this, "Mode", mode.values(), mode.Normal);
 
-    enum mode {
+    public enum mode {
         Normal,
         Slow
     }
@@ -162,7 +164,7 @@ public class Blink extends Mode {
 
         int i = slowTick.getValue().intValue() * 10;
 
-        if (Scaffold.INSTANCE.isScaffold) i = 30;
+        if (Scaffold.INSTANCE.isEnable()) i = 30;
         
         if (modeValue.getValue().equals(mode.Slow)) {
             if (timerUtils.hasTimePassed(i)) {

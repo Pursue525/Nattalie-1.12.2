@@ -1,16 +1,9 @@
 package net.pursue.config.configs;
 
 import com.google.gson.JsonObject;
-import net.pursue.Nattalie;
 import net.pursue.config.Config;
-import net.pursue.mode.Mode;
 import net.pursue.utils.HUDData;
 import net.pursue.utils.HUDManager;
-import net.pursue.value.Value;
-import net.pursue.value.values.BooleanValue;
-import net.pursue.value.values.ColorValue;
-import net.pursue.value.values.ModeValue;
-import net.pursue.value.values.NumberValue;
 
 public class HUDConfig extends Config {
 

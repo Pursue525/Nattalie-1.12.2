@@ -1,17 +1,24 @@
 package net.pursue.ui.gui;
 
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.util.math.MathHelper;
 import net.pursue.Nattalie;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
-import net.pursue.mode.hud.ClickGUI;
+import net.pursue.mode.exploit.ClickGUI;
 import net.pursue.ui.font.FontManager;
 import net.pursue.utils.MathUtils;
+import net.pursue.utils.client.DebugHelper;
 import net.pursue.utils.render.AnimationUtils;
+import net.pursue.utils.render.RenderUtils;
 import net.pursue.utils.render.RoundedUtils;
 import net.pursue.utils.render.StencilUtils;
 import net.pursue.value.Value;
+import net.pursue.value.exploit.PacketBooleanValue;
 import net.pursue.value.values.*;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -22,7 +29,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 
-public class PursueGUI extends GuiScreen {
+public class Click extends GuiScreen {
 
 
     private boolean mouse0;
@@ -33,6 +40,7 @@ public class PursueGUI extends GuiScreen {
 
     private int wheel;
     private float wheelAnim;
+    private double ColorState;
 
     private final DecimalFormat decimalFormat = new DecimalFormat("#.##");
 
@@ -43,7 +51,7 @@ public class PursueGUI extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        Nattalie.instance.getConfigManager().saveAllConfig(); // 请保持这样
+
 
         float roundWidth = 0;
         for (Category category : Category.values()) {
@@ -72,7 +80,7 @@ public class PursueGUI extends GuiScreen {
                 default -> "Null";
             };
 
-            RoundedUtils.drawRound_Rectangle(FontManager.font24, name, 210 + FontManager.font24.getWidth("ClickGUI") + 10 + categoryX, 105, 1, Color.WHITE, cat == category ? ClickGUI.instance.color.getColor() : new Color(0, 0, 0, 200), 6, 6, true);
+            RoundedUtils.drawRound_Rectangle(FontManager.font24, name, 210 + FontManager.font24.getWidth("ClickGUI") + 10 + categoryX, 105, 1, Color.WHITE, cat == category ? ClickGUI.instance.category.getColor() : new Color(0, 0, 0, 200), 6, 6, true);
             if (isHovering(210 + FontManager.font24.getWidth("ClickGUI") + 10 + categoryX, 105, RoundedUtils.width, RoundedUtils.height, mouseX, mouseY)) {
                 if (mouse0) {
                     cat = category;
@@ -120,8 +128,8 @@ public class PursueGUI extends GuiScreen {
 
         if (this.mode != null && this.mode.getCategory() == cat) {
             String key = Keyboard.getKeyName(this.mode.getKey());
-            FontManager.font28.drawString(setKey ? "请输入按键" : "Bind-" + key, 365, 140, Color.yellow.getRGB());
-            FontManager.font20.drawString(this.mode.getModeDescribes(), 370 + FontManager.font28.getWidth(setKey ? "请输入按键" : "Bind-" + key), 143, Color.LIGHT_GRAY.getRGB());
+            FontManager.font28.drawString(setKey ? "请输入按键" : "Bind-" + key, 365, 140, ClickGUI.instance.bind.getColorRGB());
+            FontManager.font20.drawString(this.mode.getModeDescribes(), 370 + FontManager.font28.getWidth(setKey ? "请输入按键" : "Bind-" + key), 143, ClickGUI.instance.describes.getColorRGB());
 
             if (isHovering(365, 140 + wheelAnim, FontManager.font28.getWidth(setKey ? "请输入按键" : "Bind-" + key), FontManager.font28.getHeight(), mouseX, mouseY)) {
                 if (mouse0) {
@@ -173,12 +181,19 @@ public class PursueGUI extends GuiScreen {
 
                     int valueStringStrN = FontManager.font20.getStringWidth(valueString + str);
 
-                    if (value instanceof BooleanValue && !value.isVisitable()) {
-                        FontManager.font20.drawString(valueString, 365, 170 + valueY + wheelAnim, Color.magenta.getRGB());
-                        FontManager.font20.drawString(str, 365 + valueStringStr, 170 + valueY + wheelAnim, Color.WHITE.getRGB());
-                        FontManager.font20.drawString((Boolean) value.getValue() ? "true" : "false", 365 + valueStringStrN, 170 + valueY + wheelAnim, Color.ORANGE.getRGB());
+                    float y2 = 170 + valueY + wheelAnim;
 
-                        if (isHovering(365 + valueStringStrN, 170 + valueY + wheelAnim, FontManager.font20.getWidth((Boolean) value.getValue() ? "true" : "false"), FontManager.font20.getHeight(), mouseX, mouseY)) {
+                    int rgb = ClickGUI.instance.valueString.getColorRGB();
+                    int rgb1 = ClickGUI.instance.value.getColorRGB();
+                    int rgb2 = ClickGUI.instance.valueBoolean.getColorRGB();
+
+                    if (value instanceof BooleanValue && !value.isVisitable()) {
+                        FontManager.font20.drawString(valueString, 365, y2, rgb);
+                        FontManager.font20.drawString(str, 365 + valueStringStr, y2, rgb1);
+
+                        FontManager.font20.drawString((Boolean) value.getValue() ? "true" : "false", 365 + valueStringStrN, y2, rgb2);
+
+                        if (isHovering(365 + valueStringStrN, y2, FontManager.font20.getWidth((Boolean) value.getValue() ? "true" : "false"), FontManager.font20.getHeight(), mouseX, mouseY)) {
                             if (mouse0) {
                                 value.setValue(!(Boolean) value.getValue());
                                 mouse0 = false;
@@ -188,28 +203,66 @@ public class PursueGUI extends GuiScreen {
                         valueY += FontManager.font20.getHeight() + 2;
                     }
 
+                    if (value instanceof PacketBooleanValue && !value.isVisitable()) {
+                        String s = " {";
+                        FontManager.font20.drawString(valueString, 365, y2, rgb);
+
+                        FontManager.font20.drawString(s, 365 + valueStringStr, y2, rgb1);
+
+                        s = "Cancel = ";
+                        FontManager.font20.drawString(s, 365, y2 + FontManager.font20.getHeight() + 2, rgb1);
+
+                        FontManager.font20.drawString((Boolean) value.getValue() ? "true" : "false", 370 + FontManager.font20.getWidth(s), y2 + FontManager.font20.getHeight() + 2, rgb2);
+
+                        if (isHovering(370 + FontManager.font20.getWidth(s), y2 + FontManager.font20.getHeight() + 2, FontManager.font20.getWidth((Boolean) value.getValue() ? "true" : "false"), FontManager.font20.getHeight(), mouseX, mouseY)) {
+                            if (mouse0) {
+                                value.setValue(!(Boolean) value.getValue());
+                                mouse0 = false;
+                            }
+                        }
+
+                        s = "DeBug = ";
+
+                        FontManager.font20.drawString(s, 365, y2 + (FontManager.font20.getHeight() + 2) * 2, rgb1);
+
+                        FontManager.font20.drawString((Boolean) value.getValue2() ? "true" : "false", 370 + FontManager.font20.getWidth(s), y2 + (FontManager.font20.getHeight() + 2) * 2, rgb2);
+
+                        if (isHovering(370 + FontManager.font20.getWidth(s), y2 + (FontManager.font20.getHeight() + 2) * 2, FontManager.font20.getWidth((Boolean) value.getValue2() ? "true" : "false"), FontManager.font20.getHeight(), mouseX, mouseY)) {
+                            if (mouse0) {
+                                value.setValue2(!(Boolean) value.getValue2());
+                                mouse0 = false;
+                            }
+                        }
+
+                        s = "}";
+
+                        FontManager.font20.drawString(s, 365, y2 + (FontManager.font20.getHeight() + 2) * 3, rgb1);
+
+                        valueY += (FontManager.font20.getHeight() + 2) * 4;
+                    }
+
                     if (value instanceof StringValue && !value.isVisitable()) {
-                        FontManager.font20.drawString(valueString, 365, 170 + valueY + wheelAnim, Color.magenta.getRGB());
-                        FontManager.font20.drawString(str, 365 + valueStringStr, 170 + valueY + wheelAnim, Color.WHITE.getRGB());
-                        FontManager.font20.drawString(value.getValue().toString(), 365 + valueStringStrN, 170 + valueY + wheelAnim, Color.GREEN.getRGB());
+                        FontManager.font20.drawString(valueString, 365, y2, rgb);
+                        FontManager.font20.drawString(str, 365 + valueStringStr, y2, rgb1);
+                        FontManager.font20.drawString(value.getValue().toString(), 365 + valueStringStrN, y2, rgb);
 
 
                         valueY += FontManager.font20.getHeight() + 2;
                     }
 
                     if (value instanceof ColorValue && !value.isVisitable()) {
-                        FontManager.font20.drawString(valueString, 365, 170 + valueY + wheelAnim, Color.magenta.getRGB());
-                        FontManager.font20.drawString(str, 365 + valueStringStr, 170 + valueY + wheelAnim, Color.WHITE.getRGB());
-                        FontManager.font20.drawString("new ", 365 + valueStringStrN, 170 + valueY + wheelAnim, Color.ORANGE.getRGB());
-                        FontManager.font20.drawString("Color(" + ((ColorValue<?>) value).getColor().getRed() + "," + ((ColorValue<?>) value).getColor().getGreen() + "," + ((ColorValue<?>) value).getColor().getBlue() + "." + ((ColorValue<?>) value).getColor().getAlpha() + ")", 365 + FontManager.font20.getWidth("new ") + valueStringStrN, 170 + valueY + wheelAnim, Color.WHITE.getRGB());
+                        FontManager.font20.drawString(valueString, 365, y2, rgb);
+                        FontManager.font20.drawString(str, 365 + valueStringStr, y2, rgb1);
+                        FontManager.font20.drawString("new ", 365 + valueStringStrN, y2, rgb2);
+                        FontManager.font20.drawString("Color( " + ((ColorValue<?>) value).getColor().getRed() + "," + ((ColorValue<?>) value).getColor().getGreen() + "," + ((ColorValue<?>) value).getColor().getBlue() + "." + ((ColorValue<?>) value).getColor().getAlpha() + " )", 365 + FontManager.font20.getWidth("new ") + valueStringStrN, y2, rgb1);
 
 
-                        int y = (int) ((int) (170 + valueY + FontManager.font20.getHeight() + 2) + wheelAnim);
+                        float y = 170 + valueY + FontManager.font20.getHeight() + 2 + wheelAnim;
                         int x = 365;
 
-                        Color lastColor = RoundedUtils.getColor(((ColorValue<?>) value).getColorRGB());
+                        Color lastColor = RenderUtils.getColor(((ColorValue) value).getColorRGB());
                         float[] color = Color.RGBtoHSB(lastColor.getRed(), lastColor.getGreen(), lastColor.getBlue(), null);
-                        double[] selectXY = new double[]{144 - 144 * color[1], 70 - 70 * color[2]};
+                        double[] selectXY = new double[]{ 144 - 144 * color[1],70 - 70 * color[2]};
                         double selectX = color[0] * 144f;
 
                         GL11.glPushMatrix();
@@ -221,19 +274,19 @@ public class PursueGUI extends GuiScreen {
                         GL11.glDisable(GL11.GL_CULL_FACE);
                         GL11.glShadeModel(7425);
 
-                        RoundedUtils.glColor(new Color(60, 60, 60, 255).getRGB());
-                        RoundedUtils.quickDrawRect(x - 1, y + 79, x + 144f, y + 91);
+                        RenderUtils.glColor(new Color(60,60,60,255).getRGB());
+                        RenderUtils.quickDrawRect(x-1, y + 79, x + 145.8f,y + 91);
 
-                        for (int H = 0; H <= 360; H += 2) {
+                        for (int H = 0; H <= 360; H+= 2){
                             GL11.glBegin(GL11.GL_POLYGON);
-                            RoundedUtils.glColor(Color.HSBtoRGB(H / 360F, 1, 1));
-                            GL11.glVertex2d(x + (H / 2.5f), y + 80);
-                            RoundedUtils.glColor(Color.HSBtoRGB((H) / 360F, 1, 1));
-                            GL11.glVertex2d(x + (H / 2.5f), y + 90);
-                            RoundedUtils.glColor(Color.HSBtoRGB((H + 1) / 360F, 1, 1));
-                            GL11.glVertex2d(x + (H / 2.5f) + 2 / 2.5f, y + 90);
-                            RoundedUtils.glColor(Color.HSBtoRGB((H + 1) / 360F, 1, 1));
-                            GL11.glVertex2d(x + (H / 2.5f) + 2 / 2.5f, y + 80);
+                            RenderUtils.glColor(Color.HSBtoRGB(H/360F,1,1));
+                            GL11.glVertex2d(x+(H/2.5f),y+80);
+                            RenderUtils.glColor(Color.HSBtoRGB((H)/360F,1,1));
+                            GL11.glVertex2d(x+(H/2.5f),y+90);
+                            RenderUtils.glColor(Color.HSBtoRGB((H+1)/360F,1,1));
+                            GL11.glVertex2d(x+(H/2.5f)+2/2.5f,y+90);
+                            RenderUtils.glColor(Color.HSBtoRGB((H+1)/360F,1,1));
+                            GL11.glVertex2d(x+(H/2.5f)+2/2.5f,y+80);
                             GL11.glEnd();
                         }
 
@@ -245,16 +298,16 @@ public class PursueGUI extends GuiScreen {
 
                         GL11.glPopMatrix();
 
-                        if (isHovering(x, y + 80, 144.0F, 90.0F, mouseX, mouseY)
-                                && Mouse.isButtonDown(0)) {
-                            if (!Mouse.isButtonDown(1) && Mouse.isButtonDown(0)) {
+                        if (isHovering(x, y + 80, 145.0F, 10.0F, mouseX, mouseY)
+                                && org.lwjgl.input.Mouse.isButtonDown(0)) {
+                            if (!Mouse.isButtonDown(1) && org.lwjgl.input.Mouse.isButtonDown(0)) {
                                 selectX = mouseX - x;
                             }
                         }
 
                         color = new float[]{(float) ((selectX) / 144f), 1, 1};
 
-                        drawRect((int) (selectX + x - 0.25f), (int) (y + 79.5f), (int) (selectX + x + 0.25f), (int) (y + 90.5f), new Color(60, 60, 60).getRGB());
+                        drawRect(selectX + x-0.25f,y+79.5f,selectX + x+0.25f,y+90.5f,new Color(60,60,60).getRGB());
 
                         GL11.glPushMatrix();
 
@@ -265,16 +318,16 @@ public class PursueGUI extends GuiScreen {
                         GL11.glDisable(GL11.GL_CULL_FACE);
                         GL11.glShadeModel(7425);
 
-                        for (int s = 0; s <= 100; s++) {
+                        for(int s = 0; s<= 100; s++){
                             GL11.glBegin(GL11.GL_POLYGON);
-                            RoundedUtils.glColor(Color.getHSBColor(color[0], (100 - s) / 100f, 1).getRGB());
-                            GL11.glVertex2d(x + s * 1.44f, y);
-                            RoundedUtils.glColor(Color.getHSBColor(color[0], (100 - s) / 100f, 0).getRGB());
-                            GL11.glVertex2d(x + s * 1.44f, y + 70);
-                            RoundedUtils.glColor(Color.getHSBColor(color[0], (100 - s) / 100f, 0).getRGB());
-                            GL11.glVertex2d(x + s * 1.44f + 1.44f, y + 70);
-                            RoundedUtils.glColor(Color.getHSBColor(color[0], (100 - s) / 100f, 1).getRGB());
-                            GL11.glVertex2d(x + s * 1.44f + 1.44f, y);
+                            RenderUtils.glColor(Color.getHSBColor(color[0],(100 - s)/100f,1).getRGB());
+                            GL11.glVertex2d(x+s*1.44f,y);
+                            RenderUtils.glColor(Color.getHSBColor(color[0],(100 - s)/100f,0).getRGB());
+                            GL11.glVertex2d(x+s*1.44f,y+70);
+                            RenderUtils.glColor(Color.getHSBColor(color[0],(100 - s)/100f,0).getRGB());
+                            GL11.glVertex2d(x+s*1.44f+1.44f,y+70);
+                            RenderUtils.glColor(Color.getHSBColor(color[0],(100 - s)/100f,1).getRGB());
+                            GL11.glVertex2d(x+s*1.44f+1.44f,y);
                             GL11.glEnd();
                         }
 
@@ -286,38 +339,76 @@ public class PursueGUI extends GuiScreen {
 
                         GL11.glPopMatrix();
 
-                        if (isHovering(x, y, 145F, 70.0F, mouseX, mouseY)
-                                && Mouse.isButtonDown(0)) {
-                            if (!Mouse.isButtonDown(1) && Mouse.isButtonDown(0)) {
+                        if (isHovering(x, y, 143F, 70.0F, mouseX, mouseY)
+                                && org.lwjgl.input.Mouse.isButtonDown(0)) {
+                            if (!Mouse.isButtonDown(1) && org.lwjgl.input.Mouse.isButtonDown(0)) {
                                 selectXY = new double[]{mouseX - x, mouseY - y};
                             }
                         }
-                        color = new float[]{color[0], (float) ((144f - selectXY[0]) / 144f), (float) ((70 - selectXY[1]) / 70f)};
+                        color = new float[]{color[0], (float) ((144f-selectXY[0])/144f), (float) ((70-selectXY[1])/70f)};
 
-                        drawRect((int) (x + selectXY[0] - 1f), (int) (y + selectXY[1] - 1f), (int) (x + selectXY[0] + 1f), (int) (y + selectXY[1] + 1f), new Color(0, 0, 0).getRGB());
-                        drawRect((int) (x + selectXY[0] - 0.5f), (int) (y + selectXY[1] - 0.5f), (int) (x + selectXY[0] + 0.5f), (int) (y + selectXY[1] + 0.5f), new Color(200, 200, 200).getRGB());
+                        drawRect(x+selectXY[0]-1f,y+selectXY[1]-1f,x+selectXY[0]+1f,y+selectXY[1]+1f,new Color(0,0,0).getRGB());
+                        drawRect(x+selectXY[0]-0.5f,y+selectXY[1]-0.5f,x+selectXY[0]+0.5f,y+selectXY[1]+0.5f,new Color(200,200,200).getRGB());
 
-                        ((ColorValue) value).setColor(Color.getHSBColor(color[0], color[1], color[2]).getRGB());
+                        ColorState = ((ColorValue) value).getColor().getAlpha();
+                        double render = (100 * (ColorState / 255));
+
+                        RenderUtils.drawRect(x + 160, y - 2, 15, 106, new Color(0,0,0,255));
+                        RenderUtils.drawRect(x + 162, y, 11, render, new Color(((ColorValue) value).getColor().getRed(),((ColorValue) value).getColor().getGreen(),((ColorValue) value).getColor().getBlue(), ((ColorValue) value).getColor().getAlpha()));
+
+                        if (isHovering(x + 160, y, 15, 100, mouseX, mouseY)) {
+                            if (Mouse.isButtonDown(0)) {
+                                double difference = 255;
+
+                                double number = 2.55 + ((double) (mouseY - y) / 100 * difference);
+
+                                if (number == 2.55) {
+                                    number = 0;
+                                }
+
+                                ((ColorValue) value).setColoAr((int) number);
+                            }
+                        } else {
+                            ((ColorValue) value).setColor(new Color(Color.getHSBColor(color[0], color[1], color[2]).getRed(), Color.getHSBColor(color[0], color[1], color[2]).getGreen(), Color.getHSBColor(color[0], color[1], color[2]).getBlue(), (int) ColorState));
+                        }
 
                         valueY += 120;
                     }
 
                     if (value instanceof NumberValue && !value.isVisitable()) {
-
                         double state = Double.parseDouble(decimalFormat.format(((NumberValue<?>) value).getValue().doubleValue()));
                         double increment = Double.parseDouble(decimalFormat.format(((NumberValue<?>) value).getIncrement().doubleValue()));
                         double min = Double.parseDouble(decimalFormat.format(((NumberValue<?>) value).getMinimum().doubleValue()));
                         double max = Double.parseDouble(decimalFormat.format(((NumberValue<?>) value).getMaximum().doubleValue()));
+                        double render = (152 * ((state - min) / (max - min)));
 
+                        float y = FontManager.font20.getHeight() + 2;
 
-                        FontManager.font20.drawString(valueString, 365, 170 + valueY + wheelAnim, Color.magenta.getRGB());
-                        FontManager.font20.drawString(str, 365 + valueStringStr, 170 + valueY + wheelAnim, Color.WHITE.getRGB());
-                        FontManager.font20.drawString(value.getValue().toString(), 365 + valueStringStrN, 170 + valueY + wheelAnim, Color.WHITE.getRGB());
+                        FontManager.font20.drawString(valueString, 365, y2, rgb);
+                        FontManager.font20.drawString(" = ", 365 + valueStringStr, y2, rgb1);
+                        FontManager.font20.drawString(value.getValue().toString(), 365 + valueStringStrN, y2, rgb1);
 
-                        FontManager.font32.drawString("+", 365 + valueStringStrN + FontManager.font20.getWidth(value.getValue().toString()) + 5, 170 + valueY + wheelAnim - 5, Color.GREEN.getRGB());
-                        FontManager.font32.drawString("-", 365 + valueStringStrN + FontManager.font20.getWidth(value.getValue().toString()) + FontManager.font32.getWidth("+") + 10, 170 + valueY + wheelAnim - 5, Color.RED.getRGB());
+                        RenderUtils.drawRect(365, y2 + 2 + y, 152, 2, rgb);
 
-                        if (isHovering(365 + valueStringStrN + FontManager.font20.getWidth(value.getValue().toString()) + 5, 170 + valueY + wheelAnim - 5, FontManager.font32.getWidth("+"), FontManager.font32.getHeight(), mouseX, mouseY)) {
+                        RenderUtils.drawRect(365, y2 + 2 + y, render, 2, new Color(255,255,255, 255));
+                        RenderUtils.drawRect(365 + render, y2 + 1 + y, 3, 4, new Color(255,255,255, 255));
+
+                        if (isHovering(365, y2 + 2 + y, 154, 6, mouseX, mouseY)) {
+                            if (Mouse.isButtonDown(0)) {
+                                double difference = ((NumberValue) value).getMaximum().doubleValue() - ((NumberValue) value).getMinimum().doubleValue();
+
+                                double number = ((NumberValue) value).getMinimum().doubleValue() + (double) (mouseX - 365) / 152 * difference;
+
+                                double set = MathUtils.incValue(number, ((NumberValue) value).getIncrement().doubleValue());
+
+                                value.setValue(set);
+                            }
+                        }
+
+                        FontManager.font32.drawString("+", 530, y2 - 5 + y, Color.GREEN.getRGB());
+                        FontManager.font32.drawString("-", 535 + FontManager.font32.getWidth("+"), y2 - 5 + y, Color.RED.getRGB());
+
+                        if (isHovering(530, y2 - 5 + y, FontManager.font32.getWidth("+"), FontManager.font32.getHeight(), mouseX, mouseY)) {
                             if (mouse0) {
                                 if (state + increment <= max) {
                                     double set = MathUtils.incValue(state + increment, ((NumberValue) value).getIncrement().doubleValue());
@@ -326,7 +417,7 @@ public class PursueGUI extends GuiScreen {
                                 }
                                 mouse0 = false;
                             }
-                        } else if (isHovering(365 + valueStringStrN + FontManager.font20.getWidth(value.getValue().toString()) + FontManager.font32.getWidth("+") + 10, 170 + valueY + wheelAnim - 5, FontManager.font32.getWidth("-"), FontManager.font32.getHeight(), mouseX, mouseY)) {
+                        } else if (isHovering(535 + FontManager.font32.getWidth("+"), y2 - 5 + y, FontManager.font32.getWidth("-"), FontManager.font32.getHeight(), mouseX, mouseY)) {
                             if (mouse0) {
                                 if (state - increment >= min) {
                                     double set = MathUtils.incValue(state - increment, ((NumberValue) value).getIncrement().doubleValue());
@@ -337,17 +428,17 @@ public class PursueGUI extends GuiScreen {
                             }
                         }
 
-                        valueY += FontManager.font20.getHeight() + 2;
+                        valueY += (FontManager.font20.getHeight() + 2) * 2;
                     }
 
                     if (value instanceof ModeValue && !value.isVisitable()) {
 
-                        FontManager.font20.drawString(valueString, 365, 170 + valueY + wheelAnim, Color.magenta.getRGB());
-                        FontManager.font20.drawString(str, 365 + valueStringStr, 170 + valueY + wheelAnim, Color.WHITE.getRGB());
-                        FontManager.font20.drawString("enum ", 365 + valueStringStrN, 170 + valueY + wheelAnim, Color.ORANGE.getRGB());
-                        FontManager.font20.drawString(value.getValue().toString(), 365 + FontManager.font20.getStringWidth(valueString + str + "enum "), 170 + valueY + wheelAnim, Color.magenta.getRGB());
+                        FontManager.font20.drawString(valueString, 365, y2, rgb);
+                        FontManager.font20.drawString(str, 365 + valueStringStr, y2, rgb1);
+                        FontManager.font20.drawString("enum ", 365 + valueStringStrN, y2, rgb2);
+                        FontManager.font20.drawString(value.getValue().toString(), 365 + FontManager.font20.getStringWidth(valueString + str + "enum "), y2, rgb);
 
-                        if (isHovering(365 + FontManager.font20.getStringWidth(valueString + str + "enum "), 170 + valueY + wheelAnim, FontManager.font20.getStringWidth(value.getValue().toString()), FontManager.font20.getHeight(), mouseX, mouseY)) {
+                        if (isHovering(365 + FontManager.font20.getStringWidth(valueString + str + "enum "), y2, FontManager.font20.getStringWidth(value.getValue().toString()), FontManager.font20.getHeight(), mouseX, mouseY)) {
                             if (mouse0) {
                                 ModeValue theme = (ModeValue) value;
                                 Enum current = (Enum) theme.getValue();
@@ -441,5 +532,30 @@ public class PursueGUI extends GuiScreen {
         } else {
             return 0;
         }
+    }
+
+    public static void drawRect(double left, double top, double right, double bottom, int color) {
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder worldrenderer = tessellator.getBuffer();
+        double minX = Math.min(left, right);
+        double maxX = Math.max(left, right);
+        double minY = Math.min(top, bottom);
+        double maxY = Math.max(top, bottom);
+        float alpha = (float)(color >> 24 & 0xFF) / 255.0f;
+        float red = (float)(color >> 16 & 0xFF) / 255.0f;
+        float green = (float)(color >> 8 & 0xFF) / 255.0f;
+        float blue = (float)(color & 0xFF) / 255.0f;
+        GlStateManager.enableBlend();
+        GlStateManager.disableTexture2D();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(red, green, blue, alpha);
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+        worldrenderer.pos(minX, maxY, 0.0).endVertex();
+        worldrenderer.pos(maxX, maxY, 0.0).endVertex();
+        worldrenderer.pos(maxX, minY, 0.0).endVertex();
+        worldrenderer.pos(minX, minY, 0.0).endVertex();
+        tessellator.draw();
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
     }
 }

@@ -10,6 +10,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.pursue.event.EventTarget;
+import net.pursue.event.player.EventTickMotion;
 import net.pursue.event.update.EventMotion;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
@@ -34,6 +35,8 @@ public class MoveFix extends Mode {
     public final BooleanValue<Boolean> noJumpDelay = new BooleanValue<>(this, "No Jump Delay", false);
     public final BooleanValue<Boolean> noLiquidSlow = new BooleanValue<>(this, "No Liquid Slow", false);
     public final BooleanValue<Boolean> noWebSlow = new BooleanValue<>(this, "No Web Slow", false);
+
+    public final BooleanValue<Boolean> fixLiquidSlow = new BooleanValue<>(this, "(1.14+)Fix Liquid", false);
 
     public MoveFix() {
         super("MoveFix", "修复移动类", "让你无蜘蛛网/水/减速，无跳跃延迟等", Category.MOVE);
@@ -72,6 +75,15 @@ public class MoveFix extends Mode {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @EventTarget
+    private void onTickMove(EventTickMotion eventTickMotion) {
+        if (fixLiquidSlow.getValue()) {
+            if (mc.player.isInLava() || mc.player.isInWater()) {
+                eventTickMotion.cancelEvent();
             }
         }
     }

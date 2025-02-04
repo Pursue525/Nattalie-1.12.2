@@ -7,13 +7,8 @@ import net.pursue.mode.hud.*;
 import net.pursue.mode.misc.*;
 import net.pursue.mode.move.*;
 import net.pursue.mode.player.*;
-import net.pursue.mode.render.Animation;
-import net.pursue.mode.render.NameTag;
-
-import net.pursue.mode.render.Shield;
-import net.pursue.mode.world.SpeedMine;
-import net.pursue.mode.world.Timer;
-import net.pursue.mode.world.WorldManager;
+import net.pursue.mode.render.*;
+import net.pursue.mode.world.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,11 +27,16 @@ public class ModeManager {
         // combat
         modes.add(new KillAura());
         modes.add(new AntiKnockBack());
+        modes.add(new AutoProjectile());
         modes.add(new ArmorBreak());
+        modes.add(new SuperKB());
 
         //exploit
         modes.add(new AutoDisMode());
         modes.add(new Protocol());
+        modes.add(new FriendGUI());
+        modes.add(new FakePlayer());
+        modes.add(new ConfigGUI());
 
         //HUD
         modes.add(new ClickGUI());
@@ -50,7 +50,6 @@ public class ModeManager {
 
         // misc
         modes.add(new Disabler());
-        modes.add(new PacketManager());
         modes.add(new Teams());
         modes.add(new AntiBot());
 
@@ -65,13 +64,16 @@ public class ModeManager {
 
         // render
         modes.add(new Animation());
+        modes.add(new ESP());
         modes.add(new NameTag());
+        modes.add(new Projectile());
         modes.add(new Shield());
 
         // player
         modes.add(new AutoHeal());
         modes.add(new AutoTool());
         modes.add(new Blink());
+        modes.add(new AutoCage());
         modes.add(new AutoArmor());
         modes.add(new Manager());
         modes.add(new Scaffold());
@@ -108,5 +110,9 @@ public class ModeManager {
             }
         }
         return null;
+    }
+
+    public void addClass(Mode mode) {
+        modes.add(mode);
     }
 }

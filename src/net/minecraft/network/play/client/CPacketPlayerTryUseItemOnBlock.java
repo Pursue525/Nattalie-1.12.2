@@ -1,12 +1,13 @@
 package net.minecraft.network.play.client;
 
-import java.io.IOException;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.INetHandlerPlayServer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+
+import java.io.IOException;
 
 public class CPacketPlayerTryUseItemOnBlock implements Packet<INetHandlerPlayServer>
 {
@@ -52,13 +53,7 @@ public class CPacketPlayerTryUseItemOnBlock implements Packet<INetHandlerPlaySer
      */
     public void writePacketData(PacketBuffer buf) throws IOException {
         buf.writeBlockPos(this.position);
-        if (this.test) {
-            buf.writeVarInt(255);
-        }else if (placeDisabler) {
-            buf.writeVarInt(6 + (this.placedBlockDirection.ordinal() * 49));
-        } else {
-            buf.writeEnumValue(this.placedBlockDirection);
-        }
+        buf.writeEnumValue(this.placedBlockDirection);
         buf.writeEnumValue(this.hand);
         buf.writeFloat(this.facingX);
         buf.writeFloat(this.facingY);

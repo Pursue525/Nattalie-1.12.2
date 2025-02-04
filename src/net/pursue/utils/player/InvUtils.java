@@ -24,9 +24,8 @@ public class InvUtils extends UtilsManager {
         mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slot, 1, ClickType.THROW, mc.player);
     }
 
-    public static void swapOFF(int inventorySlot) {
-        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, inventorySlot, 0, ClickType.PICKUP, mc.player);
-        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, 45, 0, ClickType.PICKUP, mc.player);
+    public static void shiftClick(int inventorySlot) {
+        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, inventorySlot, 0, ClickType.QUICK_MOVE, mc.player);
     }
 
     public static void swap(int inventorySlot, int hotbarSlot) {
@@ -50,5 +49,19 @@ public class InvUtils extends UtilsManager {
             }
         }
         return count;
+    }
+
+    public static void swapArmor(int invSlot, int slot, boolean shift) {
+        if (shift) {
+            shiftClick(invSlot);
+        } else {
+            swapOFF(invSlot, slot);
+        }
+    }
+
+    public static void swapOFF(int slot, int shift) {
+        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, slot, 0, ClickType.PICKUP, mc.player);
+        mc.player.connection.sendPacket(new CPacketConfirmTransaction(mc.player.inventoryContainer.windowId, mc.player.inventoryContainer.getNextTransactionID(mc.player.inventory), true));
+        mc.playerController.windowClick(mc.player.inventoryContainer.windowId, shift, 0, ClickType.PICKUP, mc.player);
     }
 }

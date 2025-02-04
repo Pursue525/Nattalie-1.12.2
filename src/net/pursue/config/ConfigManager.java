@@ -7,27 +7,57 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.text.TextFormatting;
 import net.pursue.Nattalie;
 import net.pursue.config.configs.HUDConfig;
 import net.pursue.config.configs.ModuleConfig;
+import net.pursue.utils.client.DebugHelper;
+import net.pursue.utils.client.HWIDManager;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class ConfigManager {
+
+    public static String configName = "";
+
     public static final List<Config> configs = new ArrayList<>();
-    public static final File dir = new File(new File(Minecraft.getMinecraft().mcDataDir, "Nattalie-1.12.2"), "Configs");
+
+    public static final File userDir = new File(Minecraft.getMinecraft().mcDataDir, "Nattalie");
+
+    public static final File dir = new File(userDir, "Configs");
+
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-    public ConfigManager() {
+    public static void delete(String files) {
+        File file;
+        StringBuilder nameBuilder;
+        for (Config config : configs) {
+            nameBuilder = new StringBuilder(files);
+
+            file = getConfigFile(nameBuilder, config);
+
+            if (file != null && file.isFile() && file.exists()) {
+                if (file.delete()) {
+                    DebugHelper.sendMessage("Config","配置 " + TextFormatting.YELLOW + files + TextFormatting.WHITE + " 删除成功");
+                } else {
+                    DebugHelper.sendMessage("Config","配置 " + TextFormatting.YELLOW + files + TextFormatting.WHITE + " 删除失败");
+                }
+            }
+        }
+    }
+
+    public void init() {
+        if (!userDir.exists()) {
+            userDir.mkdir();
+        }
+
         if (!dir.exists()) {
             dir.mkdir();
         }
@@ -36,10 +66,11 @@ public class ConfigManager {
         configs.add(new HUDConfig());
     }
 
-    public void loadConfig(String name) {
-        File file = new File(dir, name);
+    private void loadConfig(String name) {
+        File file = new File(userDir, name);
+
+
         if (file.exists()) {
-            System.out.println("Loading config: " + name);
             for (Config config : configs) {
                 if (config.getName().equals(name)) {
                     try {
@@ -48,8 +79,7 @@ public class ConfigManager {
                         config.loadConfig(jsonObject);
                         break;
                     } catch (IOException e) {
-                        System.out.println("Failed to load config: " + name);
-                        e.printStackTrace();
+                        //
                         break;
                     }
                 }
@@ -59,30 +89,8 @@ public class ConfigManager {
         }
     }
 
-    public void loadUserConfig(String name) {
-        File file = new File(dir, name);
-        if (file.exists()) {
-            for (Config config : configs) {
-                if (config.getName().equals("modules.json")) {
-                    try {
-                        String content = new String(Files.readAllBytes(Paths.get(file.getPath())), StandardCharsets.UTF_8);
-                        JsonObject jsonObject = new JsonParser().parse(content).getAsJsonObject();
-                        config.loadConfig(jsonObject);
-                        break;
-                    } catch (IOException e) {
-                        System.out.println("Failed to load config: " + name);
-                        e.printStackTrace();
-                        break;
-                    }
-                }
-            }
-        } else {
-            saveUserConfig(name);
-        }
-    }
-
-    public void saveConfig(String name) {
-        File file = new File(dir, name);
+    private static void saveConfig(String name) {
+        File file = new File(userDir, name);
 
         try {
             file.createNewFile();
@@ -93,23 +101,7 @@ public class ConfigManager {
                 }
             }
         } catch (IOException e) {
-            System.out.println("Failed to save config: " + name);
-        }
-    }
-
-    public void saveUserConfig(String name) {
-        File file = new File(dir, name);
-
-        try {
-            file.createNewFile();
-            for (Config config : configs) {
-                if (config.getName().equals("modules.json")) {
-                    FileUtils.writeByteArrayToFile(file, gson.toJson(config.saveConfig()).getBytes(StandardCharsets.UTF_8));
-                    break;
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Failed to save config: " + name);
+            //
         }
     }
 
@@ -121,6 +113,66 @@ public class ConfigManager {
         configs.forEach(it -> saveConfig(it.getName()));
     }
 
-    private static final String EXTENSION = ".json";
+    public static boolean save(String name) {
+        StringBuilder nameBuilder;
+        File file;
 
+        try {
+            for (Config config : configs) {
+                nameBuilder = new StringBuilder(name);
+                file = getConfigFile(nameBuilder, config);
+                file.createNewFile();
+                FileUtils.writeByteArrayToFile(file, gson.toJson(config.saveConfig()).getBytes(StandardCharsets.UTF_8));
+            }
+
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static File getConfigFile(StringBuilder nameBuilder, Config config) {
+        switch (config.getName()) {
+            case "hud.json" -> {
+                nameBuilder.append("-HUD.json");
+
+                return new File(dir, nameBuilder.toString());
+            }
+            case "modules.json" -> {
+                nameBuilder.append("-Modules.json");
+
+                return new File(dir, nameBuilder.toString());
+            }
+        }
+        return null;
+    }
+
+    public static boolean load(String name) {
+        StringBuilder nameBuilder;
+
+        for (Config config : configs) {
+            nameBuilder = new StringBuilder(name);
+
+            File file = getConfigFile(nameBuilder, config);
+
+            if (file != null && file.exists()) {
+                try {
+                    String content = new String(Files.readAllBytes(Paths.get(file.getPath())), StandardCharsets.UTF_8);
+                    JsonObject jsonObject = new JsonParser().parse(content).getAsJsonObject();
+                    config.loadConfig(jsonObject);
+                } catch (IOException e) {
+                    return false;
+                }
+                configName = name;
+            } else {
+                return false;
+            }
+        }
+        System.out.println("Loaded config: " + name);
+        return true;
+    }
+
+    public static String[] getList() {
+        return dir.list();
+    }
 }

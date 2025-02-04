@@ -3,21 +3,8 @@ package net.minecraft.entity;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import javax.annotation.Nullable;
 import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockFence;
-import net.minecraft.block.BlockFenceGate;
-import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.BlockWall;
-import net.minecraft.block.SoundType;
+import net.minecraft.block.*;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -39,39 +26,19 @@ import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagDouble;
-import net.minecraft.nbt.NBTTagFloat;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import net.minecraft.nbt.*;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.EnumParticleTypes;
-import net.minecraft.util.Mirror;
-import net.minecraft.util.ReportedException;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Rotation;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvent;
+import net.minecraft.util.*;
 import net.minecraft.util.datafix.DataFixer;
 import net.minecraft.util.datafix.FixTypes;
 import net.minecraft.util.datafix.IDataFixer;
 import net.minecraft.util.datafix.IDataWalker;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.event.HoverEvent;
@@ -86,6 +53,9 @@ import net.pursue.utils.category.MoveCategory;
 import net.pursue.utils.rotation.SilentRotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import javax.annotation.Nullable;
+import java.util.*;
 
 public abstract class Entity implements ICommandSender
 {
@@ -1556,6 +1526,8 @@ public abstract class Entity implements ICommandSender
                         factor = friction / factor;
                         strafe *= factor;
                         forward *= factor;
+
+
                         float yawSin = MathHelper.sin((float) (calcYaw * Math.PI / 180F));
                         float yawCos = MathHelper.cos((float) (calcYaw * Math.PI / 180F));
 
@@ -1748,6 +1720,11 @@ public abstract class Entity implements ICommandSender
         return pos.distanceSq(this.posX, this.posY, this.posZ);
     }
 
+    public double getDistanceSq(Entity pos)
+    {
+        return pos.getDistanceSq(this.posX, this.posY, this.posZ);
+    }
+
     public double getDistanceSqToCenter(BlockPos pos)
     {
         return pos.distanceSqToCenter(this.posX, this.posY, this.posZ);
@@ -1769,6 +1746,14 @@ public abstract class Entity implements ICommandSender
         double d0 = this.posX - pos.getX();
         double d1 = this.posY - pos.getY();
         double d2 = this.posZ - pos.getZ();
+        return (double)MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+    }
+
+    public double getDistance(Entity pos)
+    {
+        double d0 = this.posX - pos.posX;
+        double d1 = this.posY - pos.posY;
+        double d2 = this.posZ - pos.posZ;
         return (double)MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
     }
 
@@ -1891,7 +1876,7 @@ public abstract class Entity implements ICommandSender
     /**
      * Creates a Vec3 using the pitch and yaw of the entities rotation.
      */
-    protected final Vec3d getVectorForRotation(float pitch, float yaw)
+    public final Vec3d getVectorForRotation(float pitch, float yaw)
     {
         float f = MathHelper.cos(-yaw * 0.017453292F - (float)Math.PI);
         float f1 = MathHelper.sin(-yaw * 0.017453292F - (float)Math.PI);
@@ -3681,5 +3666,13 @@ public abstract class Entity implements ICommandSender
     protected int func_190531_bD()
     {
         return 1;
+    }
+
+    @Nullable
+    public RayTraceResult rayTraceCustom(double blockReachDistance, float yaw, float pitch, float partialTicks) {
+        final Vec3d vec3 = this.getPositionEyes(partialTicks);
+        final Vec3d vec31 = this.getVectorForRotation(pitch, yaw);
+        final Vec3d vec32 = vec3.add(vec31.xCoord * blockReachDistance, vec31.yCoord * blockReachDistance, vec31.zCoord * blockReachDistance);
+        return this.world.rayTraceBlocks(vec3, vec32, false, false, true);
     }
 }

@@ -29,7 +29,7 @@ public class Arraylist extends Mode {
 
     private final BooleanValue<Boolean> align = new BooleanValue<>(this, "Align", false);
 
-    public final ColorValue<Integer> color = new ColorValue<>(this ,"StringColor", Color.WHITE.getRGB());
+    public final ColorValue<Color> color = new ColorValue<>(this ,"StringColor", Color.WHITE);
 
     public Arraylist() {
         super("Arraylist", "模块列表", "显示已经开启的模块", Category.HUD);

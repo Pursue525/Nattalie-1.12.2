@@ -8,7 +8,9 @@ import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import net.pursue.event.EventTarget;
 import net.pursue.event.update.EventUpdate;
-import net.pursue.mode.hud.ClickGUI;
+import net.pursue.ui.gui.Click;
+import net.pursue.ui.gui.Config;
+import net.pursue.ui.gui.Friend;
 import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.value.values.ModeValue;
@@ -50,6 +52,12 @@ public class InvMove extends Mode {
     }
 
     private boolean isGui() {
-        return mc.currentScreen instanceof GuiInventory || mc.currentScreen instanceof GuiChest || mc.currentScreen instanceof GuiFurnace || mc.currentScreen instanceof GuiBrewingStand;
+        return mc.currentScreen instanceof GuiInventory
+                || mc.currentScreen instanceof GuiChest
+                || mc.currentScreen instanceof GuiFurnace
+                || mc.currentScreen instanceof GuiBrewingStand
+                || mc.currentScreen instanceof Friend
+                || mc.currentScreen instanceof Config
+                || mc.currentScreen instanceof Click;
     }
 }

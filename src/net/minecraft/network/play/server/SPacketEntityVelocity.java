@@ -1,11 +1,14 @@
 package net.minecraft.network.play.server;
 
-import java.io.IOException;
+import lombok.Setter;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.INetHandlerPlayClient;
 
+import java.io.IOException;
+
+@Setter
 public class SPacketEntityVelocity implements Packet<INetHandlerPlayClient>
 {
     private int entityID;

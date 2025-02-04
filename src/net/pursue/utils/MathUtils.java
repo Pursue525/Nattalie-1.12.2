@@ -17,6 +17,7 @@ public class MathUtils {
         return (float) (output * Math.exp(-(x * x) / (2.0 * (sigma * sigma))));
     }
 
+
     public static float process(float value, float defF, float defV) {
         return defV / (value / defF);
     }

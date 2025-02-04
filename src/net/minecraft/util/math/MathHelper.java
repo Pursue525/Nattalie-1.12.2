@@ -6,17 +6,10 @@ import java.util.UUID;
 public class MathHelper
 {
     public static final float SQRT_2 = sqrt(2.0F);
-    private static final int SIN_BITS = 12;
-    private static final int SIN_MASK = 4095;
-    private static final int SIN_COUNT = 4096;
     public static final float PI = (float)Math.PI;
-    public static final float PI2 = ((float)Math.PI * 2F);
-    public static final float PId2 = ((float)Math.PI / 2F);
-    private static final float radFull = ((float)Math.PI * 2F);
-    private static final float degFull = 360.0F;
-    private static final float radToIndex = 651.8986F;
-    private static final float degToIndex = 11.377778F;
-    public static final float deg2Rad = 0.017453292F;
+    private static final double field_181163_d;
+    private static final double[] field_181164_e;
+    private static final double[] field_181165_f;
     private static final float[] SIN_TABLE_FAST = new float[4096];
     public static boolean fastMath = false;
 
@@ -171,6 +164,10 @@ public class MathHelper
         {
             return num > max ? max : num;
         }
+    }
+    public static double clamp_double(double num, double min, double max)
+    {
+        return num < min ? min : (num > max ? max : num);
     }
 
     public static double clampedLerp(double lowerBnd, double upperBnd, double slide)
@@ -674,6 +671,87 @@ public class MathHelper
             double d1 = Math.asin(d0);
             COS_TAB[l] = Math.cos(d1);
             ASINE_TAB[l] = d1;
+        }
+    }
+
+    public static int func_180181_b(final int p_180181_0_, final int p_180181_1_, final int p_180181_2_) {
+        int i = (p_180181_0_ << 8) + p_180181_1_;
+        i = (i << 8) + p_180181_2_;
+        return i;
+    }
+
+
+    public static double func_181161_i(double p_181161_0_) {
+        final double d0 = 0.5 * p_181161_0_;
+        long i = Double.doubleToRawLongBits(p_181161_0_);
+        i = 6910469410427058090L - (i >> 1);
+        p_181161_0_ = Double.longBitsToDouble(i);
+        p_181161_0_ *= 1.5 - d0 * p_181161_0_ * p_181161_0_;
+        return p_181161_0_;
+    }
+
+    public static double func_181159_b(double p_181159_0_, double p_181159_2_) {
+        final double d0 = p_181159_2_ * p_181159_2_ + p_181159_0_ * p_181159_0_;
+        if (Double.isNaN(d0)) {
+            return Double.NaN;
+        }
+        final boolean flag = p_181159_0_ < 0.0;
+        if (flag) {
+            p_181159_0_ = -p_181159_0_;
+        }
+        final boolean flag2 = p_181159_2_ < 0.0;
+        if (flag2) {
+            p_181159_2_ = -p_181159_2_;
+        }
+        final boolean flag3 = p_181159_0_ > p_181159_2_;
+        if (flag3) {
+            final double d2 = p_181159_2_;
+            p_181159_2_ = p_181159_0_;
+            p_181159_0_ = d2;
+        }
+        final double d3 = func_181161_i(d0);
+        p_181159_2_ *= d3;
+        p_181159_0_ *= d3;
+        final double d4 = MathHelper.field_181163_d + p_181159_0_;
+        final int i = (int)Double.doubleToRawLongBits(d4);
+        final double d5 = MathHelper.field_181164_e[i];
+        final double d6 = MathHelper.field_181165_f[i];
+        final double d7 = d4 - MathHelper.field_181163_d;
+        final double d8 = p_181159_0_ * d6 - p_181159_2_ * d7;
+        final double d9 = (6.0 + d8 * d8) * d8 * 0.16666666666666666;
+        double d10 = d5 + d9;
+        if (flag3) {
+            d10 = 1.5707963267948966 - d10;
+        }
+        if (flag2) {
+            d10 = 3.141592653589793 - d10;
+        }
+        if (flag) {
+            d10 = -d10;
+        }
+        return d10;
+    }
+
+    static {
+        MathHelper.fastMath = false;
+
+        for (int i = 0; i < 65536; ++i) {
+            MathHelper.SIN_TABLE[i] = (float)Math.sin(i * 3.141592653589793 * 2.0 / 65536.0);
+        }
+        for (int j = 0; j < 4096; ++j) {
+            MathHelper.SIN_TABLE_FAST[j] = (float)Math.sin((j + 0.5f) / 4096.0f * 6.2831855f);
+        }
+        for (int l = 0; l < 360; l += 90) {
+            MathHelper.SIN_TABLE_FAST[(int)(l * 11.377778f) & 0xFFF] = (float)Math.sin(l * 0.017453292f);
+        }
+        field_181163_d = Double.longBitsToDouble(4805340802404319232L);
+        field_181164_e = new double[257];
+        field_181165_f = new double[257];
+        for (int k = 0; k < 257; ++k) {
+            final double d1 = k / 256.0;
+            final double d2 = Math.asin(d1);
+            MathHelper.field_181165_f[k] = Math.cos(d2);
+            MathHelper.field_181164_e[k] = d2;
         }
     }
 }

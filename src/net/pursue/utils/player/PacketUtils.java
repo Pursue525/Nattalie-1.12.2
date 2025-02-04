@@ -1,6 +1,7 @@
 package net.pursue.utils.player;
 
 import io.netty.buffer.Unpooled;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.EnumConnectionState;
 import net.minecraft.network.EnumPacketDirection;
 import net.minecraft.network.Packet;
@@ -28,8 +29,7 @@ public class PacketUtils extends UtilsManager {
     }
 
     public static void sendToServer(String channelName, PacketBuffer buffer) {
-        if (mc.getConnection() == null) return;
-        mc.getConnection().sendPacket(new CPacketCustomPayload(channelName, buffer));
+        Minecraft.getMinecraft().getConnection().getNetworkManager().sendPacket(new CPacketCustomPayload(channelName, buffer));
     }
 
     public static boolean isSPacket(Packet<?> packet) {

@@ -522,33 +522,12 @@ public class RenderUtils {
         stop2D();
     }
 
-    public static void drawRect(double left, double top, double right, double bottom, int color) {
-        GlStateManager.resetColor();
-        final boolean enableBlend = GL11.glIsEnabled(3042);
-        final boolean disableAlpha = !GL11.glIsEnabled(3008);
-        if (!enableBlend) {
-            GL11.glEnable(3042);
-        }
-        if (!disableAlpha) {
-            GL11.glDisable(3008);
-        }
-        Gui.drawRect((int) left,(int) top,(int) right,(int) bottom, color);
-        if (!enableBlend) {
-            GL11.glDisable(3042);
-        }
-        if (!disableAlpha) {
-            GL11.glEnable(3008);
-        }
-    }
-    public static void drawRainbowRect(float x, float y, float width, float height) {
-        for (int ticks = 0; ticks < width; ticks++) {
-            Color rainbowcolor = new Color(Color.HSBtoRGB((float) (ticks / width + Math.sin(1.6)) % 1.0f, 0.5f, 1.0f));
-            RenderUtils.drawRect(x + ticks, y, 1, height, rainbowcolor.getRGB());
-        }
+    public static void drawRect(Number x, Number y, Number width, Number height, Color color) {
+        Gui.drawRect(x.intValue(), y.intValue(), x.intValue() + width.intValue(), y.intValue() + height.intValue(), color.getRGB());
     }
 
-    public static void drawRect(float x, float y, float width, float height, Color color) {
-        Gui.drawRect((int)x, (int)y, (int)x +(int) width, (int)y +(int) height, color.getRGB());
+    public static void drawRect(Number x, Number y, Number width, Number height, int color) {
+        Gui.drawRect(x.intValue(), y.intValue(), x.intValue() + width.intValue(), y.intValue() + height.intValue(), color);
     }
 
     public static void setAlphaLimit(float limit) {
@@ -730,6 +709,7 @@ public class RenderUtils {
         final double z = pos.zCoord - renderZ;
         return getVec2f(factor, x, y, z, 0, 0);
     }
+
 
     private static Vec2f getVec2f(float factor, double x, double y, double z, double width, double height) {
         final AxisAlignedBB aabb = new AxisAlignedBB(x - width, y, z - width, x + width, y + height, z + width);
