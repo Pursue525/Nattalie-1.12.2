@@ -1,7 +1,6 @@
 package net.minecraft.client.renderer;
 
 import com.google.common.base.MoreObjects;
-import java.util.Objects;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -21,25 +20,23 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.*;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.EnumHandSide;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.storage.MapData;
 import net.pursue.Nattalie;
 import net.pursue.mode.combat.KillAura;
+import net.pursue.mode.exploit.WorldManager;
 import net.pursue.mode.render.Animation;
-import net.pursue.mode.render.Shield;
-import net.pursue.mode.world.WorldManager;
 import net.pursue.utils.player.SpoofSlotUtils;
 import optifine.Config;
 import optifine.DynamicLights;
 import optifine.Reflector;
 import optifine.ReflectorForge;
+import org.lwjgl.opengl.GL11;
 import shadersmod.client.Shaders;
+
+import java.util.Objects;
 
 public class ItemRenderer
 {
@@ -466,13 +463,22 @@ public class ItemRenderer
 
                     if ((this.mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && this.mc.gameSettings.keyBindUseItem.isKeyDown() || (KillAura.INSTANCE.isEnable() && KillAura.INSTANCE.isBlock)) && Animation.instance.isEnable()) {
                         switch ((Animation.mode) Animation.instance.modeValue.getValue()) {
-                            case Normal_1_7 -> {
-                                int i = enumhandside == EnumHandSide.RIGHT ? 1 : -1;
-                                GlStateManager.translate((float)i * 0.56F, -0.52F, -0.72F);
+                            case Normal -> {
+                                int k = enumhandside == EnumHandSide.RIGHT ? 1 : -1;
 
-                                GlStateManager.rotate(71.0f, 0.0F, 1.0F, 0.0F);
-                                GlStateManager.rotate(-81.0f, 1.0F, 0.0F, 0.0F);
-                                GlStateManager.rotate(14.0f, 0.0F, 1.0F, 0.0F);
+                                float swingCos = (float) Math.sin(p_187457_5_ * p_187457_5_ * (float) Math.PI);
+                                float swingCos2 = (float) Math.sin(Math.sqrt(p_187457_5_) * (float) Math.PI);
+
+                                GL11.glTranslatef(k * 0.56F, -0.52F, -0.72F);
+                                GL11.glRotatef(k * (45.0F + swingCos * -20.0F), 0.0F, 1.0F, 0.0F);
+                                GL11.glRotatef(k * swingCos2 * -20.0F, 0.0F, 0.0F, 1.0F);
+                                GL11.glRotatef(swingCos2 * -80.0F, 1.0F, 0.0F, 0.0F);
+                                GL11.glRotatef(k * -45.0F, 0.0F, 1.0F, 0.0F);
+                                GL11.glScalef(0.9F, 0.9F, 0.9F);
+                                GL11.glTranslatef(-0.2F, 0.126F, 0.2F);
+                                GL11.glRotatef(-102.25F, 1.0F, 0.0F, 0.0F);
+                                GL11.glRotatef(k * 15.0F, 0.0F, 1.0F, 0.0F);
+                                GL11.glRotatef(k * 80.0F, 0.0F, 0.0F, 1.0F);
                                 Shield = false;
                             }
                             case Shield -> {

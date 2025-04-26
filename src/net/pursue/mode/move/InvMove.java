@@ -8,11 +8,11 @@ import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import net.pursue.event.EventTarget;
 import net.pursue.event.update.EventUpdate;
+import net.pursue.mode.Mode;
 import net.pursue.ui.gui.Click;
 import net.pursue.ui.gui.Config;
 import net.pursue.ui.gui.Friend;
 import net.pursue.utils.category.Category;
-import net.pursue.mode.Mode;
 import net.pursue.value.values.ModeValue;
 import org.lwjgl.input.Keyboard;
 
@@ -24,7 +24,7 @@ public class InvMove extends Mode {
 
     public enum mode {
         Normal,
-        NewGrim
+        Grim
     }
 
     public InvMove() {
@@ -36,10 +36,10 @@ public class InvMove extends Mode {
 
     @EventTarget
     public void onUpdate(EventUpdate eventUpdate) {
-
+        setSuffix(modeValue.getValue().name());
         switch ((mode) modeValue.getValue()) {
             case Normal -> sprint = true;
-            case NewGrim -> sprint = !isGui();
+            case Grim -> sprint = !isGui();
         }
 
         if (isGui()) {

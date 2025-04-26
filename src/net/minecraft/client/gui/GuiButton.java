@@ -6,6 +6,7 @@ import net.minecraft.client.audio.SoundHandler;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.util.ResourceLocation;
+import net.pursue.utils.render.AnimationUtils;
 
 public class GuiButton extends Gui
 {
@@ -32,6 +33,9 @@ public class GuiButton extends Gui
 
     /** Hides the button completely if false. */
     public boolean visible;
+
+    private boolean delay = false;
+    public double animationX = 0;
     protected boolean hovered;
 
     public GuiButton(int buttonId, int x, int y, String buttonText)
@@ -41,8 +45,6 @@ public class GuiButton extends Gui
 
     public GuiButton(int buttonId, int x, int y, int widthIn, int heightIn, String buttonText)
     {
-        this.width = 200;
-        this.height = 20;
         this.enabled = true;
         this.visible = true;
         this.id = buttonId;
@@ -51,6 +53,19 @@ public class GuiButton extends Gui
         this.width = widthIn;
         this.height = heightIn;
         this.displayString = buttonText;
+    }
+
+    public GuiButton(int buttonId, int x, int y, int widthIn, int heightIn, String buttonText, boolean delay)
+    {
+        this.enabled = true;
+        this.visible = true;
+        this.id = buttonId;
+        this.xPosition = x;
+        this.yPosition = y;
+        this.width = widthIn;
+        this.height = heightIn;
+        this.displayString = buttonText;
+        this.delay = delay;
     }
 
     /**
@@ -75,20 +90,25 @@ public class GuiButton extends Gui
 
     public void func_191745_a(Minecraft p_191745_1_, int p_191745_2_, int p_191745_3_, float p_191745_4_)
     {
-        if (this.visible)
-        {
+        if (this.visible) {
+            if (delay) {
+                animationX = AnimationUtils.smooth(this.xPosition, animationX, 8f / Minecraft.getDebugFPS());
+            } else {
+                animationX = this.xPosition;
+            }
+
             FontRenderer fontrenderer = p_191745_1_.fontRendererObj;
             p_191745_1_.getTextureManager().bindTexture(BUTTON_TEXTURES);
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-            this.hovered = p_191745_2_ >= this.xPosition && p_191745_3_ >= this.yPosition && p_191745_2_ < this.xPosition + this.width && p_191745_3_ < this.yPosition + this.height;
+            this.hovered = p_191745_2_ >= this.animationX && p_191745_3_ >= this.yPosition && p_191745_2_ < this.animationX + this.width && p_191745_3_ < this.yPosition + this.height;
             int i = this.getHoverState(this.hovered);
 
             GlStateManager.enableBlend();
             GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
 
-            this.drawTexturedModalRect(this.xPosition, this.yPosition, 0, 46 + i * 20, this.width / 2, this.height);
-            this.drawTexturedModalRect(this.xPosition + this.width / 2, this.yPosition, 200 - this.width / 2, 46 + i * 20, this.width / 2, this.height);
+            this.drawTexturedModalRect((int) this.animationX, this.yPosition, 0, 46 + i * 20, this.width / 2, this.height);
+            this.drawTexturedModalRect((int) (this.animationX + this.width / 2), this.yPosition, 200 - this.width / 2, 46 + i * 20, this.width / 2, this.height);
 
             this.mouseDragged(p_191745_1_, p_191745_2_, p_191745_3_);
 
@@ -103,7 +123,9 @@ public class GuiButton extends Gui
                 j = 16777120;
             }
 
-            this.drawCenteredString(fontrenderer, this.displayString, this.xPosition + this.width / 2, this.yPosition + (this.height - 8) / 2, j);
+            this.drawCenteredString(fontrenderer, this.displayString, (int) (this.animationX + this.width / 2), this.yPosition + (this.height - 8) / 2, j);
+        } else {
+            animationX = 0;
         }
     }
 

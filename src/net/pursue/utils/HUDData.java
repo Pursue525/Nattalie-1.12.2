@@ -3,10 +3,7 @@ package net.pursue.utils;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.pursue.ui.font.FontManager;
 import org.lwjgl.input.Mouse;
-
-import java.awt.*;
 
 @Setter
 @Getter
@@ -64,20 +61,5 @@ public class HUDData {
         }
 
         return mouseX >= startX && mouseX <= startX + w && mouseY >= startY && mouseY <= startY + h;
-    }
-
-    public void renderTag() {
-        float textX = x;
-        float textY = y;
-
-        if (width < 0) {
-            textX += width;
-        }
-
-        if (height < 0) {
-            textY += height;
-        }
-
-        FontManager.font16.drawString(title, textX, textY - 2 - FontManager.font16.getHeight(), new Color(255, 255, 255, alpha).getRGB());
     }
 }

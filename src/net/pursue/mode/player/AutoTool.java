@@ -3,13 +3,10 @@ package net.pursue.mode.player;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
 import net.pursue.event.EventTarget;
 import net.pursue.event.player.EventClickBlock;
-import net.pursue.event.update.EventUpdate;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
-import net.pursue.utils.player.SpoofSlotUtils;
+import net.pursue.utils.category.Category;
 
 public class AutoTool extends Mode {
     public AutoTool() {
@@ -18,25 +15,8 @@ public class AutoTool extends Mode {
 
     @EventTarget
     private void onClickBlock(EventClickBlock eventClickBlock) {
-        if (oldSlot == -1) {
-            oldSlot = mc.player.inventory.currentItem;
-        }
         switchSlot(eventClickBlock.getClickedBlock());
     }
-
-    @EventTarget
-    private void onUpdate(EventUpdate eventUpdate) {
-        if (oldSlot != - 1) {
-            SpoofSlotUtils.setSlot(oldSlot);
-        }
-        if ((!mc.gameSettings.keyBindAttack.isKeyDown() || (mc.objectMouseOver != null && mc.objectMouseOver.typeOfHit != RayTraceResult.Type.BLOCK)) && oldSlot != -1) {
-            mc.player.inventory.currentItem = oldSlot;
-            SpoofSlotUtils.stopSpoofSlot();
-            oldSlot = -1;
-        }
-    }
-
-    private int oldSlot = -1;
 
     private void switchSlot(BlockPos blockPos) {
         float bestSpeed = 1.0F;
@@ -59,6 +39,7 @@ public class AutoTool extends Mode {
 
         if (bestSlot != -1) {
             mc.player.inventory.currentItem = bestSlot;
+            mc.playerController.updateController();
         }
     }
 }

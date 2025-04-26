@@ -2,30 +2,29 @@ package net.pursue.mode.player;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.pursue.event.EventTarget;
 import net.pursue.event.player.EventSlot;
 import net.pursue.event.player.EventStrafe;
 import net.pursue.event.update.EventMotion;
-import net.pursue.event.update.EventTick;
 import net.pursue.event.update.EventUpdate;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
-import net.pursue.mode.combat.KillAura;
 import net.pursue.shield.IsShield;
-import net.pursue.utils.*;
 import net.pursue.utils.Block.BlockData;
+import net.pursue.utils.Block.BlockUtils;
+import net.pursue.utils.Block.FacingData;
+import net.pursue.utils.category.Category;
 import net.pursue.utils.category.MoveCategory;
 import net.pursue.utils.player.InvUtils;
 import net.pursue.utils.player.MovementUtils;
+import net.pursue.utils.player.PlayerUtils;
 import net.pursue.utils.player.SpoofSlotUtils;
 import net.pursue.utils.rotation.RotationUtils;
 import net.pursue.utils.rotation.SilentRotation;
@@ -36,8 +35,7 @@ import net.pursue.value.values.NumberValue;
 
 import javax.vecmath.Vector2f;
 import java.awt.*;
-import java.util.*;
-import java.util.List;
+import java.util.Arrays;
 
 @IsShield
 public class Scaffold extends Mode {
@@ -76,7 +74,7 @@ public class Scaffold extends Mode {
         Silence,
         Spoof
     }
-
+    public final BooleanValue<Boolean> rayTrace =new BooleanValue<>(this,"RayTrace",true);
     private final BooleanValue<Boolean> swing = new BooleanValue<>(this, "Swing", true);
     public final BooleanValue<Boolean> blocks = new BooleanValue<>(this, "Blocks", true);
 
@@ -102,29 +100,27 @@ public class Scaffold extends Mode {
         oldSlot = mc.player.inventory.currentItem;
         isScaffold = false;
         blockData = null;
-        mc.player.setSneaking(false);
     }
 
     @Override
     public void disable() {
         if (mc.player == null) return;
 
-        mc.player.inventory.currentItem = oldSlot;
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), false);
         SpoofSlotUtils.stopSpoofSlot();
+        if (mc.player.inventory.currentItem != oldSlot) mc.player.inventory.currentItem = oldSlot;
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), false);
         isScaffold = false;
         blockData = null;
     }
 
     @EventTarget
     private void onSlot(EventSlot event) {
-        if (autoBlockModeValue.getValue() == autoBlock.Silence) {
-            oldSlot = event.getSlot();
-        }
+        if (autoBlockModeValue.getValue() == autoBlock.Silence) oldSlot = event.getSlot();
     }
 
     @EventTarget
     private void onUpdate(EventUpdate event) {
+        setSuffix(modeValue.getValue().name());
         if (mc.player.onGround) {
             keepYCoord = Math.floor(mc.player.posY - 1);
         }
@@ -135,31 +131,29 @@ public class Scaffold extends Mode {
 
         blockData = !modeValue.getValue().equals(mode.Legit) ? mc.world.getBlockState(mc.player.getPos().down()).getBlock() instanceof BlockAir ? getBlockData(new BlockPos(mc.player.posX, getPosY(), mc.player.posZ)) : null : getBlockData(new BlockPos(mc.player.posX, getPosY(), mc.player.posZ));
 
-        isScaffold = (modeValue.getValue().equals(mode.Normal) || modeValue.getValue().equals(mode.Legit) || mc.player.offGroundTicks >= tickDelay.getValue().intValue()) && slot >= 0;
-
-        switch (autoBlockModeValue.getValue()) {
-            case Normal -> {
-                if (isScaffold) {
-                    mc.player.inventory.currentItem = slot;
-                }
-            }
-
-            case Spoof -> {
-                if (isScaffold) {
-                    mc.player.inventory.currentItem = slot;
-                } else {
-                    mc.player.inventory.currentItem = oldSlot;
-                }
-            }
-        }
+        isScaffold = modeValue.getValue().equals(mode.Normal) || modeValue.getValue().equals(mode.Legit) || mc.player.offGroundTicks >= tickDelay.getValue().intValue();
 
         if (isScaffold) {
             if (blockData != null) {
                 SilentRotation.setRotation(new Vector2f(RotationUtils.getRotationBlock(blockData.pos())), MoveCategory.Silent);
             }
-        } else {
-            if (!KillAura.INSTANCE.isEnable() || KillAura.INSTANCE.target == null) {
-                SilentRotation.setTargetRotation(null);
+        }
+
+        switch (autoBlockModeValue.getValue()) {
+            case Normal -> {
+                SpoofSlotUtils.stopSpoofSlot();
+
+                mc.player.inventory.currentItem = slot < 0 ? oldSlot : slot;
+            }
+
+            case Spoof -> {
+                SpoofSlotUtils.setSlot(oldSlot);
+
+                if (isScaffold) {
+                    mc.player.inventory.currentItem = slot < 0 ? oldSlot : slot;
+                } else {
+                    mc.player.inventory.currentItem = oldSlot;
+                }
             }
         }
     }
@@ -167,6 +161,7 @@ public class Scaffold extends Mode {
     @EventTarget
     private void onMotion(EventMotion event) {
         if (event.getType() == EventMotion.Type.Pre) {
+
             if (modeValue.getValue().equals(mode.Legit)) {
                 if (mc.world.getBlockState(new BlockPos(mc.player.posX, mc.player.posY - 1, mc.player.posZ)).getBlock() instanceof BlockAir) {
                     KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), mc.player.onGround);
@@ -175,12 +170,15 @@ public class Scaffold extends Mode {
                 }
             }
         }
+        if (event.getType() == EventMotion.Type.Post) {
+            if (isScaffold) {
+                if (blockData != null) {
+                    place();
+                }
+            }
+        }
     }
 
-    @EventTarget
-    private void onTick(EventTick event) {
-        place();
-    }
 
 
     @EventTarget
@@ -206,149 +204,59 @@ public class Scaffold extends Mode {
     }
 
     private void place() {
-        if (blockData != null && isScaffold) {
+        if (slot >= 0) {
             if (mc.world.getBlockState(new BlockPos(mc.player.getPos().down())).getBlock() instanceof BlockAir) {
-                if (autoBlockModeValue.getValue() == autoBlock.Silence) mc.player.inventory.currentItem = slot;
-                mc.playerController.processRightClickBlock(mc.player, mc.world, blockData.pos(), blockData.facing(), getVec3d(blockData.pos(), blockData.facing()), EnumHand.MAIN_HAND);
-                if (swing.getValue()) mc.player.swingArm(EnumHand.MAIN_HAND);
+                if (autoBlockModeValue.getValue().equals(autoBlock.Silence)) mc.player.inventory.currentItem = slot;
 
-                if (autoBlockModeValue.getValue() == autoBlock.Silence) mc.player.inventory.currentItem = oldSlot;
-                blockData = null;
+                if (rayTrace.getValue()) {
+                    RayTraceResult mop = mc.world.rayTraceBlocks(
+                            new Vec3d(mc.player.posX, mc.player.posY + mc.player.getEyeHeight(), mc.player.posZ),
+                            new Vec3d(blockData.pos()).add(new Vec3d(0.5, 0, 0.5)),
+                            false, true, true);
+
+                    if (mop != null && mop.typeOfHit == RayTraceResult.Type.BLOCK) {
+                        if (mc.playerController.processRightClickBlock(mc.player, mc.world, blockData.pos(), blockData.facing(), BlockUtils.getVec3d(blockData.pos(), blockData.facing()), EnumHand.MAIN_HAND) == EnumActionResult.SUCCESS) {
+                            if (swing.getValue()) mc.player.swingArm(EnumHand.MAIN_HAND);
+                        }
+                    }
+                } else {
+                    if (mc.playerController.processRightClickBlock(mc.player, mc.world, blockData.pos(), blockData.facing(), BlockUtils.getVec3d(blockData.pos(), blockData.facing()), EnumHand.MAIN_HAND) == EnumActionResult.SUCCESS) {
+                        if (swing.getValue()) mc.player.swingArm(EnumHand.MAIN_HAND);
+                    }
+                }
+
+                if (autoBlockModeValue.getValue().equals(autoBlock.Silence)) mc.player.inventory.currentItem = oldSlot;
+
             }
         }
-    }
-
-    private Vec3d getVec3d(BlockPos pos, EnumFacing face) {
-        double x = (double) pos.getX() + 0.5;
-        double y = (double) pos.getY() + 0.5;
-        double z = (double) pos.getZ() + 0.5;
-        if (face == EnumFacing.UP || face == EnumFacing.DOWN) {
-            x += MathUtils.getRandomInRange(0.3, -0.3);
-            z += MathUtils.getRandomInRange(0.3, -0.3);
-        } else {
-            y += 0.08;
-        }
-        if (face == EnumFacing.WEST || face == EnumFacing.EAST) {
-            z += MathUtils.getRandomInRange(0.3, -0.3);
-        }
-        if (face == EnumFacing.SOUTH || face == EnumFacing.NORTH) {
-            x += MathUtils.getRandomInRange(0.3, -0.3);
-        }
-        return new Vec3d(x, y, z);
     }
 
     private BlockData getBlockData(BlockPos pos) {
-        if (getPos(pos) == null) {
-            if (getBlockPos() == null) return null;
+        BlockData f = getData(pos);
 
-            if (getPlaceSide(getBlockPos()) == null) return null;
+        final Vec3d targetBlock = PlayerUtils.getPlacePossibility(0, 0, 0, mc.playerController.getBlockReachDistance());
 
-            return new BlockData(getBlockPos(), getPlaceSide(getBlockPos()));
+        if (targetBlock == null) return null;
+
+        FacingData enumFacing = PlayerUtils.getEnumFacing(targetBlock);
+
+        if (enumFacing == null) return null;
+
+        final BlockPos position = new BlockPos(targetBlock.xCoord, targetBlock.yCoord, targetBlock.zCoord);
+
+        BlockPos blockFace = position.add(enumFacing.vec3d().xCoord, enumFacing.vec3d().yCoord, enumFacing.vec3d().zCoord);
+
+        if (f != null) {
+            return f;
         } else {
-            return getPos(pos);
+            return new BlockData(blockFace, enumFacing.facing());
         }
     }
 
-    private EnumFacing getPlaceSide(BlockPos blockPos) {
-        List<BlockData> blockData = new ArrayList<>();
-
-        BlockPos pos = new BlockPos(mc.player.posX, mc.player.posY, mc.player.posZ);
-
-        if (isAirBlock(blockPos.east()) && !blockPos.east().equals(pos)) {
-            blockData.add(new BlockData(blockPos.east(), EnumFacing.EAST));
-        }
-
-
-        if (isAirBlock(blockPos.north()) && !blockPos.north().equals(pos)) {
-            blockData.add(new BlockData(blockPos.north(), EnumFacing.NORTH));
-        }
-
-        if (isAirBlock(blockPos.south()) && !blockPos.south().equals(pos)) {
-            blockData.add(new BlockData(blockPos.south(), EnumFacing.SOUTH));
-        }
-
-        if (isAirBlock(blockPos.west()) && !blockPos.west().equals(pos)) {
-            blockData.add(new BlockData(blockPos.west(), EnumFacing.WEST));
-        }
-
-        if (blockData.isEmpty()) return null;
-
-        blockData.sort(Comparator.comparingDouble(vec3 -> {
-            final double d0 = pos.getX() - vec3.pos().getX();
-            final double d1 = pos.getY() - vec3.pos().getY();
-            final double d2 = pos.getZ() - vec3.pos().getZ();
-            return MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-        }));
-
-        return blockData.getFirst().facing();
-    }
-
-
-    private BlockPos getBlockPos() {
-
-        BlockPos playerPos = new BlockPos(mc.player.posX, mc.player.posY, mc.player.posZ);
-
-        ArrayList<BlockPos> positions = new ArrayList<>();
-
-        Map<BlockPos, Block> searchBlock = searchBlocks(5);
-        for (Map.Entry<BlockPos, Block> block : searchBlock.entrySet()) {
-            if (isPosSolid(block.getKey())) {
-                positions.add(block.getKey());
-            }
-        }
-
-        positions.removeIf(pos -> mc.player.getDistance(pos) > mc.playerController.getBlockReachDistance() || pos.getY() >= playerPos.getY());
-
-        if (positions.isEmpty()) return null;
-
-        positions.sort(Comparator.comparingDouble(vec3 -> {
-            final double d0 = playerPos.getX() - vec3.getX();
-            final double d1 = playerPos.getY() - vec3.getY();
-            final double d2 = playerPos.getZ() - vec3.getZ();
-            return MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-        }));
-
-        return positions.getFirst();
-    }
-
-    public boolean isAirBlock(BlockPos blockPos) {
-        Block block = Minecraft.getMinecraft().world.getBlockState(blockPos).getBlock();
-        return block instanceof BlockAir;
-    }
-
-    public Block getBlock(BlockPos pos) {
-        return mc.world.getBlockState(pos).getBlock();
-    }
-
-    public Map<BlockPos, Block> searchBlocks(int radius) {
-        Map<BlockPos, Block> blocks = new HashMap<>();
-        EntityPlayer player = mc.player;
-        if (player == null) {
-            return blocks;
-        }
-        for (int x = radius; x >= -radius + 1; x--) {
-            for (int y = radius; y >= -radius + 1; y--) {
-                for (int z = radius; z >= -radius + 1; z--) {
-                    BlockPos blockPos = new BlockPos(player.posX + x, player.posY + y, player.posZ + z);
-                    Block block = getBlock(blockPos);
-                    if (block == null) {
-                        continue;
-                    }
-                    blocks.put(blockPos, block);
-                }
-            }
-        }
-        return blocks;
-    }
-
-    /**
-     * Fix UP
-     *
-     * @return EnumFacing-UP
-     */
-
-    public BlockData getPos(BlockPos pos) {
-        if (isPosSolid(pos.add(-1, 0, 0))) {
+    private BlockData getData(BlockPos pos) {
+        if (isPosSolid(pos.add(0, -1, 0))) {
+            return new BlockData(pos.add(0, -1, 0), EnumFacing.UP);
+        } else if (isPosSolid(pos.add(-1, 0, 0))) {
             return new BlockData(pos.add(-1, 0, 0), EnumFacing.EAST);
         } else if (isPosSolid(pos.add(1, 0, 0))) {
             return new BlockData(pos.add(1, 0, 0), EnumFacing.WEST);
@@ -356,9 +264,8 @@ public class Scaffold extends Mode {
             return new BlockData(pos.add(0, 0, 1), EnumFacing.NORTH);
         } else if (isPosSolid(pos.add(0, 0, -1))) {
             return new BlockData(pos.add(0, 0, -1), EnumFacing.SOUTH);
-        } else if (isPosSolid(pos.add(0, -1, 0))) {
-            return new BlockData(pos.add(0, -1, 0), EnumFacing.UP);
         }
+
         return null;
     }
 

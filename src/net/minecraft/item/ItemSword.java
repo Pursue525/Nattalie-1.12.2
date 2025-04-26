@@ -81,6 +81,11 @@ public class ItemSword extends Item
         return true;
     }
 
+    public EnumAction getItemUseAction()
+    {
+        return EnumAction.SWORD;
+    }
+
     /**
      * Check whether this Item can harvest the given Block
      */

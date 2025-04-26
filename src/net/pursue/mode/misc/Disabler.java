@@ -14,22 +14,26 @@ import net.pursue.event.EventManager;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
 import net.pursue.event.world.EventWorldLoad;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.mode.player.AutoHeal;
 import net.pursue.mode.player.Blink;
+import net.pursue.utils.category.Category;
+import net.pursue.utils.client.DebugHelper;
 import net.pursue.utils.player.PacketUtils;
 import net.pursue.value.values.BooleanValue;
+
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.List;
 
 public class Disabler extends Mode {
 
     public static Disabler instance;
 
     private final BooleanValue<Boolean> post = new BooleanValue<>(this, "GrimPost-Dis", false);
-    private final BooleanValue<Boolean> badh = new BooleanValue<>(this,"GrimBadH-Dis", false);
+    private final BooleanValue<Boolean> badPacketA = new BooleanValue<>(this, "GrimBadPacketA-Dis", true);
+    private final BooleanValue<Boolean> chatFix = new BooleanValue<>(this, "Chat-Cleanse", true);
+    private final BooleanValue<Boolean> chatDebug = new BooleanValue<>(this, "ChatDeBug", true, chatFix::getValue);
     private final BooleanValue<Boolean> highC0E = new BooleanValue<>(this,"(1.14+)Animation-Fix", false);
     private final BooleanValue<Boolean> highC07 = new BooleanValue<>(this,"(1.14+)DropItem-Fix", false);
     private final BooleanValue<Boolean> highS0E = new BooleanValue<>(this,"(1.17+)ItemBug-Fix", false);
@@ -40,10 +44,11 @@ public class Disabler extends Mode {
     }
 
     private static boolean lastResult;
+
     public static List<Packet<INetHandler>> storedPackets;
     public static ConcurrentLinkedDeque<Integer> pingPackets;
 
-    private boolean animation = false;
+    private int lastSlot;
 
     private boolean isGUI;
 
@@ -57,18 +62,6 @@ public class Disabler extends Mode {
     private void onPacket(EventPacket event) {
         Packet<?> packet = event.getPacket();
 
-        if (badh.getValue()) {
-            if (packet instanceof CPacketAnimation) {
-                animation = true;
-            } else if (packet instanceof CPacketUseEntity) {
-                if (((CPacketUseEntity) packet).getAction() != CPacketUseEntity.Action.ATTACK) return;
-
-                if (!animation) {
-                    mc.player.swingArm(EnumHand.MAIN_HAND, false);
-                }
-                animation = false;
-            }
-        }
         if (highC0E.getValue()) {
             if (packet instanceof CPacketClickWindow clickWindow && clickType(clickWindow.getClickType(), clickWindow.getSlotId())) {
                 mc.player.swingArm(EnumHand.MAIN_HAND, false);
@@ -98,6 +91,30 @@ public class Disabler extends Mode {
             }
         }
 
+        if (chatFix.getValue()) {
+            if (packet instanceof SPacketChat chat) {
+                String chatMessage = chat.getChatComponent().getUnformattedText();
+
+                String[] sensitiveWords = {"xinxin.cam","SilenceFix Best The Config Free", "SilenceFix Best Config Free", "快手搜索SilenceFix"};
+
+                for (String word : sensitiveWords) {
+                    if (chatMessage.toLowerCase().contains(word.toLowerCase())) {
+                        event.cancelEvent();
+                        if (chatDebug.getValue()) DebugHelper.sendMessage("净网系统", "已删除垃圾宣传");
+                    }
+                }
+            }
+        }
+
+        if (badPacketA.getValue()) {
+            if (packet instanceof CPacketHeldItemChange wrapped) {
+                if (wrapped.getSlotId() == lastSlot)
+                    event.cancelEvent();
+                else
+                    lastSlot = wrapped.getSlotId();
+            }
+        }
+
         if (packet instanceof SPacketOpenWindow) {
             isGUI = true;
         }
@@ -108,7 +125,7 @@ public class Disabler extends Mode {
 
     @EventTarget
     private void onWorld(EventWorldLoad eventWorldLoad) {
-        animation = false;
+        lastSlot = -1;
         isGUI = false;
     }
 
@@ -125,17 +142,10 @@ public class Disabler extends Mode {
     }
 
     public boolean getGrimPost() {
-        boolean result = Nattalie.instance.getModeManager().getByClass(Disabler.class).isEnable() && post.getValue()
-                && mc.player != null
-                && mc.world != null
-                && mc.player.isEntityAlive()
-                && (!AutoHeal.instance.isEnable() || AutoHeal.instance.modeValue.getValue() != AutoHeal.mode.Golden_Apple)
-                && !Nattalie.instance.getModeManager().getByClass(Blink.class).isEnable()
-                && mc.player.ticksExisted >= 10;
+        boolean result = isValidPostCondition();
 
         if (lastResult && !result) {
             lastResult = false;
-
             mc.addScheduledTask(this::processPackets);
         }
 
@@ -143,13 +153,24 @@ public class Disabler extends Mode {
         return result;
     }
 
-    public void processPackets() {
+    private boolean isValidPostCondition() {
+        return Nattalie.instance.getModeManager().getByClass(Disabler.class).isEnable()
+                && post.getValue()
+                && mc.player != null
+                && mc.world != null
+                && mc.player.isEntityAlive()
+                && (!AutoHeal.instance.isEnable() || AutoHeal.instance.modeValue.getValue() != AutoHeal.mode.Golden_Apple)
+                && !Nattalie.instance.getModeManager().getByClass(Blink.class).isEnable()
+                && mc.player.ticksExisted >= 10;
+    }
+
+    public synchronized void processPackets() {
         if (!storedPackets.isEmpty()) {
             for (Packet<INetHandler> packet : storedPackets) {
                 EventPacket event = new EventPacket(packet);
                 EventManager.instance.call(event);
 
-                if (event.isCancelled() || mc.getConnection() == null || mc == null || mc.player == null || mc.world == null) {
+                if (event.isCancelled() || mc.player == null || mc.player.isDead || mc.getConnection() == null || mc.world == null || !mc.getConnection().getNetworkManager().isChannelOpen()) {
                     continue;
                 }
 

@@ -3,9 +3,7 @@ package net.pursue.utils.rotation;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.network.play.client.CPacketPlayer;
 import net.pursue.event.EventTarget;
-import net.pursue.event.packet.EventPacket;
 import net.pursue.event.player.EventJump;
 import net.pursue.event.player.EventStrafe;
 import net.pursue.event.update.EventMotion;
@@ -40,13 +38,11 @@ public class SilentRotation extends UtilsManager {
 
     @EventTarget
     private void onMotion(EventMotion eventMotion) {
-        if (eventMotion.getType() == EventMotion.Type.Pre) {
-            if (targetRotation != null) {
-                eventMotion.setRotationYaw(targetRotation.x);
-                eventMotion.setRotationPitch(targetRotation.y);
-                mc.player.renderYawOffset = targetRotation.x;
-                mc.player.rotationYawHead = targetRotation.x;
-            }
+        if (targetRotation != null) {
+            eventMotion.setRotationYaw(targetRotation.x);
+            eventMotion.setRotationPitch(targetRotation.y);
+            mc.player.renderYawOffset = targetRotation.x;
+            mc.player.rotationYawHead = targetRotation.x;
         }
     }
 

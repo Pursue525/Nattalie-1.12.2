@@ -22,6 +22,10 @@ public class MathUtils {
         return defV / (value / defF);
     }
 
+    public static float centre(float value1, float value2) {
+        return (value1 / 2) - (value2 / 2);
+    }
+
     public static float lerp(float a, float b, float f) {
         return a + f * (b - a);
     }

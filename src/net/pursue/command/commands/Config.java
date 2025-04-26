@@ -13,7 +13,7 @@ public class Config extends Command {
     private final List<String> string = new ArrayList<String>();
 
     public Config() {
-        super("config");
+        super("Config");
 
 
         string.add("reload");

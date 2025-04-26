@@ -6,5 +6,6 @@ public enum EnumAction
     EAT,
     DRINK,
     BLOCK,
+    SWORD,
     BOW;
 }

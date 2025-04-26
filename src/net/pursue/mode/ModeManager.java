@@ -1,14 +1,21 @@
 package net.pursue.mode;
 
 import lombok.Getter;
+import net.pursue.mode.client.*;
 import net.pursue.mode.combat.*;
-import net.pursue.mode.exploit.*;
+import net.pursue.mode.exploit.AutoDisMode;
+import net.pursue.mode.exploit.FakePlayer;
+import net.pursue.mode.exploit.WorldManager;
 import net.pursue.mode.hud.*;
-import net.pursue.mode.misc.*;
+import net.pursue.mode.misc.AntiBot;
+import net.pursue.mode.misc.Disabler;
+import net.pursue.mode.misc.Teams;
 import net.pursue.mode.move.*;
 import net.pursue.mode.player.*;
 import net.pursue.mode.render.*;
-import net.pursue.mode.world.*;
+import net.pursue.mode.world.SpeedMine;
+import net.pursue.mode.world.Stuck;
+import net.pursue.mode.world.Timer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +33,10 @@ public class ModeManager {
     public void load() {
         // combat
         modes.add(new KillAura());
-        modes.add(new AntiKnockBack());
+        modes.add(new Velocity());
         modes.add(new AutoProjectile());
         modes.add(new ArmorBreak());
+        modes.add(new Criticals());
         modes.add(new SuperKB());
 
         //exploit
@@ -36,6 +44,7 @@ public class ModeManager {
         modes.add(new Protocol());
         modes.add(new FriendGUI());
         modes.add(new FakePlayer());
+        modes.add(new Tile());
         modes.add(new ConfigGUI());
 
         //HUD
@@ -43,6 +52,7 @@ public class ModeManager {
         modes.add(new Logo());
         modes.add(new Arraylist());
         modes.add(new Target());
+        modes.add(new SwordBlock());
         modes.add(new Notification());
         modes.add(new Armor());
         modes.add(new Effects());
@@ -67,23 +77,29 @@ public class ModeManager {
         modes.add(new ESP());
         modes.add(new NameTag());
         modes.add(new Projectile());
+        modes.add(new ItemDeBug());
         modes.add(new Shield());
 
         // player
         modes.add(new AutoHeal());
+        modes.add(new AutoL());
         modes.add(new AutoTool());
         modes.add(new Blink());
         modes.add(new AutoCage());
-        modes.add(new AutoArmor());
-        modes.add(new Manager());
+        modes.add(new InvManager());
         modes.add(new Scaffold());
         modes.add(new FastPlace());
+        modes.add(new AutoReport());
+        modes.add(new ContainerAura());
         modes.add(new Stealer());
 
         // world
         modes.add(new WorldManager());
         modes.add(new Timer());
         modes.add(new SpeedMine());
+
+        // client
+        modes.add(new ClientSetting());
     }
 
     public void onKey(int key) {

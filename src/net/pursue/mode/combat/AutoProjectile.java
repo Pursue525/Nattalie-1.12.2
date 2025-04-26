@@ -3,12 +3,9 @@ package net.pursue.mode.combat;
 import com.google.common.base.Predicates;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemAppleGold;
 import net.minecraft.network.play.client.CPacketHeldItemChange;
-import net.minecraft.network.play.client.CPacketPlayer;
 import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
 import net.minecraft.util.EntitySelectors;
 import net.minecraft.util.EnumHand;
@@ -17,9 +14,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.pursue.event.EventTarget;
-import net.pursue.event.packet.EventPacket;
 import net.pursue.event.update.EventMotion;
-import net.pursue.event.update.EventTick;
 import net.pursue.event.update.EventUpdate;
 import net.pursue.mode.Mode;
 import net.pursue.mode.misc.Teams;
@@ -32,7 +27,6 @@ import net.pursue.utils.category.MoveCategory;
 import net.pursue.utils.friend.FriendManager;
 import net.pursue.utils.rotation.RotationUtils;
 import net.pursue.utils.rotation.SilentRotation;
-import net.pursue.value.values.BooleanValue;
 import net.pursue.value.values.NumberValue;
 
 import javax.vecmath.Vector2f;
@@ -97,14 +91,16 @@ public class AutoProjectile extends Mode {
     }
 
     @EventTarget
-    private void noMotion(EventTick eventTick) {
-        if (isRunning) {
-            isRunning = false;
+    private void noMotion(EventMotion eventMotion) {
+        if (eventMotion.getType() == EventMotion.Type.Post) {
+            if (isRunning) {
+                isRunning = false;
 
-            mc.player.connection.sendPacket(new CPacketHeldItemChange(getThrowSlot()));
-            mc.player.connection.sendPacket(new CPacketPlayerTryUseItem(EnumHand.MAIN_HAND));
-            delay.reset();
-            mc.player.connection.sendPacket(new CPacketHeldItemChange(mc.player.inventory.currentItem));
+                mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(getThrowSlot()));
+                mc.player.connection.sendPacketNoEvent(new CPacketPlayerTryUseItem(EnumHand.MAIN_HAND));
+                delay.reset();
+                mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem));
+            }
         }
     }
 

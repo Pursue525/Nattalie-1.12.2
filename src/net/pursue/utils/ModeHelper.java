@@ -2,11 +2,6 @@ package net.pursue.utils;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
 import net.minecraft.network.EnumPacketDirection;
 import net.minecraft.network.handshake.client.C00Handshake;
 import net.minecraft.network.login.client.CPacketEncryptionResponse;
@@ -21,24 +16,25 @@ import net.minecraft.network.status.client.CPacketServerQuery;
 import net.minecraft.network.status.server.SPacketPong;
 import net.minecraft.network.status.server.SPacketServerInfo;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.MathHelper;
 import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
 import net.pursue.event.EventTarget;
 import net.pursue.event.render.EventRender2D;
-import net.pursue.event.render.EventRender3D;
 import net.pursue.event.world.EventWorldLoad;
-import net.pursue.mode.hud.Notification;
-import net.pursue.mode.misc.PacketManager;
+import net.pursue.mode.client.ClickGUI;
+import net.pursue.mode.exploit.PacketManager;
+import net.pursue.mode.player.AutoHeal;
+import net.pursue.mode.player.Blink;
 import net.pursue.mode.player.Scaffold;
 import net.pursue.ui.font.FontManager;
-import net.pursue.utils.client.DebugHelper;
+import net.pursue.ui.font.FontUtils;
+import net.pursue.utils.player.InvUtils;
 import net.pursue.utils.render.AnimationUtils;
 import net.pursue.utils.render.RoundedUtils;
-import net.pursue.utils.rotation.RotationUtils;
 import org.apache.commons.io.IOUtils;
 import org.lwjgl.opengl.GL11;
 
-import javax.swing.text.Utilities;
 import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -52,9 +48,13 @@ public class ModeHelper {
 
     private double countscale = 0;
 
+    private double animationY = -40;
+    private double animY = -40;
+    private double animationX;
+
     public void init() {
-        File fil = new File(Minecraft.getMinecraft().mcDataDir, "Nattalie/VerifyVideo");
-        File file = new File(fil, "Verify.mp4");
+        File fil = new File(Minecraft.getMinecraft().mcDataDir, "Nattalie/Video");
+        File file = new File(fil, "miyabi.mp4");
 
         if (!fil.exists()) {
             fil.mkdir();
@@ -63,7 +63,7 @@ public class ModeHelper {
         if (!file.exists()) {
             try {
                 file.createNewFile();
-                unpackFile(file, "assets/minecraft/nattalie/mp4/Verify.mp4");
+                unpackFile(file, "assets/minecraft/nattalie/mp4/miyabi.mp4");
             } catch (IOException e) {
                 System.out.print("无法生成视频:  " + e);
             }
@@ -84,22 +84,79 @@ public class ModeHelper {
             countscale = AnimationUtils.moveUD((float) countscale, (float) 0, (float) (5 * RoundedUtils.deltaTime()), (float) (4 * RoundedUtils.deltaTime()));
         }
 
-        float width = 50 + FontManager.font18.getStringWidth(String.valueOf(getBlock()));
+        float width = 50 + FontManager.font18.getStringWidth(String.valueOf(InvUtils.getBlockIndex()));
         float x = (sr.getScaledWidth() / 2F - width / 2) - 10;
-        float y = (sr.getScaledHeight() / 2F + 12) + 160  ;
+        float y = (sr.getScaledHeight() / 2F + 12) + 10;
         float height = 18;
+
         if (Scaffold.INSTANCE.blocks.getValue()) {
+
             GL11.glPushMatrix();
             GL11.glTranslated(x + (width / 2F), y + (height / 2F), 0);
             GL11.glScaled(countscale, 1, countscale);
             GL11.glTranslated(-(x + (width / 2F)), -(y + (height / 2F)), 0);
-            RoundedUtils.drawRound(x, y, width + 24, height, 1, new Color(0,0,0,125));
 
-            this.drawItemStack(Scaffold.INSTANCE.slot >= 0 ? mc.player.inventoryContainer.getSlot(Scaffold.INSTANCE.slot + 36).getStack() : mc.player.getHeldItem(EnumHand.MAIN_HAND), x + 1, y + 1);
+            RoundedUtils.drawRound(x, y, width + 24, height, 1, new Color(0, 0, 0, 125));
 
-            if (getBlock() > 0) FontManager.font18.drawString("Remainder: " + getBlock(), x + 18, y + 6, Scaffold.INSTANCE.color.getColorRGB());
+
+            RoundedUtils.drawStack(Scaffold.INSTANCE.slot >= 0 ? mc.player.inventoryContainer.getSlot(Scaffold.INSTANCE.slot + 36).getStack() : mc.player.getHeldItem(EnumHand.MAIN_HAND), x + 1, y + 1);
+
+            String blocks = "Blocks: ";
+
+            if (ClickGUI.instance.chinese.getValue()) blocks = "剩余方块数: ";
+
+            if (InvUtils.getBlockIndex() > 0)
+                FontManager.font18.drawString(blocks + InvUtils.getBlockIndex(), x + 18, y + 6, Scaffold.INSTANCE.color.getColorRGB());
 
             GL11.glPopMatrix();
+        }
+
+        FontUtils fontManager = FontManager.font16;
+
+        int w = 340;
+        x = (float) sr.getScaledWidth() / 2 - 170;
+
+        if (AutoHeal.instance.modeValue.getValue() == AutoHeal.mode.Golden_Apple) {
+
+            animationY = AnimationUtils.smooth(AutoHeal.instance.isEnable() ? 10 : -40, animationY, 8f / Minecraft.getDebugFPS());
+
+            RoundedUtils.drawRound((float) x, (float) animationY, w, 15 + fontManager.getHeight(), 1, new Color(0, 0, 0, 180));
+
+            fontManager.drawString("Packets", (float) (x + 170 - (fontManager.getWidth("Packets") / 2)), (float) (animationY + 5), AutoHeal.instance.colorValue.getColorRGB());
+
+            RoundedUtils.drawRound((float) x + 5, (float) animationY + fontManager.getHeight() + 4, 330, 3, 1, Color.BLACK);
+
+            RoundedUtils.drawRound((float) x + 5, (float) animationY + fontManager.getHeight() + 4, AutoHeal.tick * 10, 3, 1, AutoHeal.instance.colorValue.getColor());
+        }
+
+        animY = AnimationUtils.smooth(Blink.instance.isEnable() ? 70 : -40, animY, 8f / Minecraft.getDebugFPS());
+
+        if (animY != -40) {
+            double maxhealthnonnull = 9500;
+            double healthnonnull = Blink.instance.getTime();
+            double healthPercentage = MathHelper.clamp((healthnonnull) / (maxhealthnonnull), 0, 1);
+            w = 210;
+
+            x = (float) sr.getScaledWidth() / 2 - 105;
+            float endWidth = (float) Math.max(0, 200 * healthPercentage);
+
+            RoundedUtils.drawRound((float) x, (float) animY, w, 15 + fontManager.getHeight(), 1, new Color(0, 0, 0, 180));
+
+            String ps = "Packets- " + Blink.instance.getPackets();
+
+            if (Blink.instance.getPackets() > 5 && !Blink.pollPacketIng) {
+                fontManager.drawString(ps, x + 5, (float) (animY + 5), Blink.instance.colorValue.getColorRGB());
+                fontManager.drawString("C0FPackets- " + Blink.instance.c0fs, (x + 15) + fontManager.getWidth(ps), (float) (animY + 5), Blink.instance.colorValue.getColorRGB());
+            } else {
+                ps = "Release Packet...";
+
+                fontManager.drawString(ps, x + 5, (float) (animY + 5), Blink.instance.colorValue.getColorRGB());
+            }
+
+
+            RoundedUtils.drawRound((float) x + 5, (float) animY + fontManager.getHeight() + 4, 200, 3, 1, Color.BLACK);
+
+            RoundedUtils.drawRound((float) x + 5, (float) animY + fontManager.getHeight() + 4, endWidth, 3, 1, Blink.instance.colorValue.getColor());
         }
     }
 
@@ -108,35 +165,6 @@ public class ModeHelper {
         Nattalie.instance.getNotificationManager().stopNoti();
     }
 
-    private boolean isBlock(ItemStack stack) {
-        Item item = stack.getItem();
-        return item instanceof ItemBlock;
-    }
-
-    private int getBlock() {
-        int blockCount = 0;
-        for (int slotIndex = 9; slotIndex < mc.player.inventoryContainer.inventorySlots.size(); slotIndex++) {
-            ItemStack stack = mc.player.getSlotFromPlayerContainer(slotIndex).getStack();
-
-            if (isBlock(stack)) {
-                blockCount += stack.stackSize;
-            }
-        }
-        return blockCount;
-    }
-
-    private void drawItemStack(ItemStack itemStack, float x, float y) {
-        GlStateManager.pushMatrix();
-        GlStateManager.enableRescaleNormal();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        RenderHelper.enableGUIStandardItemLighting();
-        mc.getRenderItem().renderItemAndEffectIntoGUI(itemStack, (int) x, (int) y);
-        GlStateManager.disableRescaleNormal();
-        GlStateManager.disableBlend();
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.popMatrix();
-    }
 
     public static void unpackFile(File file, String name) throws FileNotFoundException {
         FileOutputStream fos = new FileOutputStream(file);

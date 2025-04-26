@@ -7,22 +7,17 @@ import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.StringUtils;
 import net.minecraft.util.text.TextFormatting;
-import net.pursue.Nattalie;
 import net.pursue.ui.font.FontManager;
-import net.pursue.ui.font.RapeMasterFontManager;
-import net.pursue.utils.TimerUtils;
+import net.pursue.ui.font.FontUtils;
 import net.pursue.utils.client.DebugHelper;
 import net.pursue.utils.friend.FriendManager;
 import net.pursue.utils.render.AnimationUtils;
 import net.pursue.utils.render.RenderUtils;
 import net.pursue.utils.render.RoundedUtils;
-import net.pursue.utils.render.StencilUtils;
 import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
 import java.io.IOException;
-import java.util.UUID;
 
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
@@ -56,78 +51,54 @@ public class Friend extends GuiScreen {
         textField.drawTextBox();
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        RoundedUtils.drawRound(210, 115, 252, 280, 2, new Color(0, 0, 0,120));
+        RoundedUtils.drawRound(210, 115, 252, 280, 2, new Color(0, 0, 0, 120));
         FontManager.font24.drawString(player ? "当前好友列表：" : "当前世界玩家列表：", 210, 102, Color.WHITE.getRGB());
 
-        GL11.glPopMatrix();
-        GL11.glPushMatrix();
-        GL11.glColor4f(1f, 1, 1, 1f);
-        StencilUtils.write(false);
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glPushMatrix();
+        RoundedUtils.enableRoundNoRender(210, 115, 252, 280, 2);
 
-        {
-            RoundedUtils.drawRound(210, 115, 252, 280, 2, new Color(0, 0, 0,120));
+
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        int fixY = 0;
+        if (!player) {
+            if (mc.getConnection() != null) {
+                for (NetworkPlayerInfo playerInfo : mc.getConnection().getPlayerInfoMap()) {
+                    String name = StringUtils.stripControlCodes(playerInfo.getGameProfile().getName());
+
+                    if (name.equals(mc.player.getName()) || FriendManager.isFriend(name)) continue;
+
+                    drawPlayer(220, (int) (120 + fixY + wheelAnim), name, playerInfo, FontManager.font36, mouseX, mouseY);
+                    fixY += 40;
+                }
+            }
+        } else {
+            if (!FriendManager.friends.isEmpty()) {
+                for (String data : FriendManager.friends) {
+                    drawPlayer(220, (int) (120 + fixY + wheelAnim), data, null, FontManager.font36, mouseX, mouseY);
+                    fixY += 40;
+                }
+            }
         }
 
-        GL11.glPopMatrix();
-        GlStateManager.resetColor();
-        GL11.glDisable(GL11.GL_BLEND);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        StencilUtils.erase(true);
-        GL11.glPushMatrix();
-
-        {
-            GlStateManager.enableBlend();
-            GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            int fixY = 0;
-            if (!player) {
-                if (mc.getConnection() != null) {
-                    for (NetworkPlayerInfo playerInfo : mc.getConnection().getPlayerInfoMap()) {
-                        String name = StringUtils.stripControlCodes(playerInfo.getGameProfile().getName());
-
-                        if (name.equals(mc.player.getName()) || FriendManager.isFriend(name)) continue;
-
-                        drawPlayer(220, (int) (120 + fixY + wheelAnim), name, playerInfo, FontManager.font36, mouseX, mouseY);
-                        fixY += 40;
-                    }
+        int real = Mouse.getDWheel();
+        if (isHovering(210, 115, 252, 280, mouseX, mouseY)) {
+            if (real > 0 && wheel < 0) {
+                for (int i = 0; i < 5; i++) {
+                    if (!(wheel < 0))
+                        break;
+                    wheel += 10;
                 }
             } else {
-                if (!FriendManager.friends.isEmpty()) {
-                    for (String data : FriendManager.friends) {
-                        drawPlayer(220, (int) (120 + fixY + wheelAnim), data, null, FontManager.font36, mouseX, mouseY);
-                        fixY += 40;
-                    }
+                for (int i = 0; i < 5; i++) {
+                    if (!(real < 0 && wheel + fixY > 280))
+                        break;
+                    wheel -= 10;
                 }
             }
-
-            int real = Mouse.getDWheel();
-            if (isHovering(210, 115, 252, 280, mouseX, mouseY)) {
-                if (real > 0 && wheel < 0) {
-                    for (int i = 0; i < 5; i++) {
-                        if (!(wheel < 0))
-                            break;
-                        wheel += 10;
-                    }
-                } else {
-                    for (int i = 0; i < 5; i++) {
-                        if (!(real < 0))
-                            break;
-                        wheel -= 10;
-                    }
-                }
-            }
-
-            wheelAnim = AnimationUtils.moveUD(wheelAnim, wheel, (float) (10 * RenderUtils.deltaTime()), (float) (7 * RenderUtils.deltaTime()));
-            GlStateManager.disableBlend();
         }
-        GL11.glPopMatrix();
-        GlStateManager.resetColor();
-        StencilUtils.dispose();
-        GL11.glPopMatrix();
-        GL11.glPushMatrix();
+        wheelAnim = AnimationUtils.moveUD(wheelAnim, wheel, (float) (10 * RenderUtils.deltaTime()), (float) (7 * RenderUtils.deltaTime()));
+        GlStateManager.disableBlend();
+        RoundedUtils.disableRoundNoRender();
     }
 
     @Override
@@ -193,7 +164,7 @@ public class Friend extends GuiScreen {
         super.keyTyped(typedChar, keyCode);
     }
 
-    private void drawPlayer(int x, int y, String name, NetworkPlayerInfo playerInfo, RapeMasterFontManager fontManager, int mouseX, int mouseY) {
+    private void drawPlayer(int x, int y, String name, NetworkPlayerInfo playerInfo, FontUtils fontManager, int mouseX, int mouseY) {
 
         float anim;
         if (isHovered(x, y, 252, 36, mouseX, mouseY)) {
@@ -212,7 +183,7 @@ public class Friend extends GuiScreen {
         GlStateManager.disableLighting();
         GlStateManager.depthMask(false);
 
-        RoundedUtils.drawRound(x, y,242, 36, 2, new Color(100,100,100,150));
+        RoundedUtils.drawRound(x, y,237, 36, 2, new Color(100,100,100,150));
         fontManager.drawString(name, x + 39, y + 2, Color.WHITE.getRGB());
 
         if (playerInfo != null) {

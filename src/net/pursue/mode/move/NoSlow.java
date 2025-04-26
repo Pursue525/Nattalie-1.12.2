@@ -1,6 +1,5 @@
 package net.pursue.mode.move;
 
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.ClickType;
@@ -18,26 +17,20 @@ import net.minecraft.util.math.BlockPos;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
 import net.pursue.event.player.EventSlow;
-import net.pursue.event.render.EventRender2D;
 import net.pursue.event.update.EventMotion;
-import net.pursue.event.update.EventTick;
 import net.pursue.event.update.EventUpdate;
 import net.pursue.event.world.EventWorldLoad;
-import net.pursue.ui.font.FontManager;
-import net.pursue.utils.TimerUtils;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
 import net.pursue.mode.combat.KillAura;
 import net.pursue.mode.player.AutoHeal;
-import net.pursue.utils.client.DebugHelper;
+import net.pursue.mode.player.Scaffold;
+import net.pursue.shield.IsShield;
+import net.pursue.utils.category.Category;
 import net.pursue.utils.player.InvUtils;
 import net.pursue.utils.player.PacketUtils;
-import net.pursue.utils.render.RoundedUtils;
-import net.pursue.value.values.BooleanValue;
 import net.pursue.value.values.ModeValue;
 
-import java.awt.*;
-
+@IsShield
 public class NoSlow extends Mode {
     public static NoSlow INSTANCE;
     public final ModeValue<mode> modeValue = new ModeValue<>(this, "Mode", mode.values(), mode.Grim);
@@ -73,12 +66,16 @@ public class NoSlow extends Mode {
         C0E,
     }
 
-    private final BooleanValue<Boolean> UseSlow = new BooleanValue<>(this, "Slow", true, () -> modeValue.getValue() == mode.HighGrim);
-    private final BooleanValue<Boolean> render = new BooleanValue<>(this, "RenderUseItem", true);
+    private final ModeValue<bjd> bjdModeValue = new ModeValue<>(this, "HighGrimMode", bjd.values(), bjd.ItemDrop, () -> modeValue.getValue() == mode.HighGrim);
+
+    enum bjd {
+        ItemDrop,
+        BugC0E,
+    }
 
 
     public NoSlow() {
-        super("NoSlow", "无使用物品减速", "移除你使用物品时的减速", Category.MOVE);
+        super("NoSlow", "无减速", "移除你使用物品时的减速", Category.MOVE);
         INSTANCE = this;
     }
 
@@ -188,16 +185,55 @@ public class NoSlow extends Mode {
                 }
             }
 
-            if (mc.player.getHeldItem(EnumHand.OFF_HAND).getItem() instanceof ItemAppleGold) {
-                if (packet instanceof CPacketPlayerTryUseItem) {
-                    slow = true;
-                    isHighGrim = true;
-                    tick = 0;
-                    mc.player.connection.sendPacket(new CPacketClickWindow(0, 36, 0, ClickType.SWAP, new ItemStack(Blocks.BARRIER), mc.player.inventoryContainer.getNextTransactionID(mc.player.inventory)));
+            switch (bjdModeValue.getValue()) {
+                case BugC0E -> {
+                    if (mc.player.getHeldItem(EnumHand.OFF_HAND).getItem() instanceof ItemAppleGold || mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemAppleGold) {
+                        if (packet instanceof CPacketPlayerTryUseItem) {
+                            slow = true;
+                            isHighGrim = true;
+                            tick = 0;
+                            mc.player.connection.sendPacket(new CPacketClickWindow(0, 36, 0, ClickType.SWAP, new ItemStack(Blocks.BARRIER), mc.player.inventoryContainer.getNextTransactionID(mc.player.inventory)));
+                        }
+
+                        if (packet instanceof CPacketPlayerDigging && isHighGrim) {
+                            event.cancelEvent();
+                        }
+                    }
                 }
 
-                if (packet instanceof CPacketPlayerDigging && isHighGrim) {
-                    event.cancelEvent();
+                case ItemDrop -> {
+                    if (mc.player.getHeldItem(EnumHand.OFF_HAND).getItem() instanceof ItemAppleGold) {
+                        if (packet instanceof CPacketPlayerTryUseItem) {
+                            slow = true;
+
+                            if (!isHighGrim) {
+                                isHighGrim = true;
+                                mc.player.connection.sendPacketNoEvent(new CPacketClickWindow(0, 36, 0, ClickType.SWAP, new ItemStack(Blocks.BARRIER), mc.player.inventoryContainer.getNextTransactionID(mc.player.inventory)));
+
+                                mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(InvUtils.getBlockSlot()));
+                                mc.player.connection.sendPacketNoEvent(new CPacketPlayerDigging(CPacketPlayerDigging.Action.DROP_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+
+                                new Thread(() -> {
+                                    try {
+                                        Thread.sleep(200L);
+                                        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
+                                        mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem));
+
+                                    } catch (InterruptedException ex) {
+                                        ex.printStackTrace();
+                                    }
+                                }).start();
+                            }
+                        }
+
+                        if (packet instanceof CPacketPlayerDigging) {
+                            event.cancelEvent();
+                        }
+                    } else if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemAppleGold) {
+                        if (packet instanceof CPacketPlayerTryUseItem) {
+                            slow = true;
+                        }
+                    }
                 }
             }
         }
@@ -205,66 +241,39 @@ public class NoSlow extends Mode {
 
     @EventTarget
     private void onMotion(EventMotion eventMotion) {
+        setSuffix(modeValue.getValue().name());
         if (modeValue.getValue().equals(mode.Grim)) {
-            if (AutoHeal.instance.isEnable() && AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple)) return;
+            if (AutoHeal.instance.isEnable() && AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple) || Scaffold.INSTANCE.isScaffold) return;
 
             if (eventMotion.getType() == EventMotion.Type.Pre) {
                 if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && (mc.player.isHandActive() || KillAura.INSTANCE.isBlock)) {
                     switch ((swordMod) swordModModeValue.getValue()) {
                         case DoubleC09 -> {
-                            PacketUtils.send(new CPacketHeldItemChange(mc.player.inventory.currentItem + 1));
-                            PacketUtils.send(new CPacketPlayerTryUseItem(EnumHand.OFF_HAND));
-                            PacketUtils.send(new CPacketHeldItemChange(mc.player.inventory.currentItem));
+                            mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem + 1));
+                            mc.player.connection.sendPacketNoEvent(new CPacketPlayerTryUseItem(EnumHand.OFF_HAND));
+                            mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem));
                         }
-                        case PreC07 -> PacketUtils.send(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+                        case PreC07 -> mc.player.connection.sendPacketNoEvent(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
                     }
                 }
                 if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemBow && mc.player.isHandActive()) {
                     if (bowModeValue.getValue() == bowMod.DoubleC09) {
-                        PacketUtils.send(new CPacketHeldItemChange(mc.player.inventory.currentItem + 1));
-                        PacketUtils.send(new CPacketPlayerTryUseItem(EnumHand.OFF_HAND));
-                        PacketUtils.send(new CPacketHeldItemChange(mc.player.inventory.currentItem));
+                        mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem + 1));
+                        mc.player.connection.sendPacketNoEvent(new CPacketPlayerTryUseItem(EnumHand.OFF_HAND));
+                        mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem));
                     }
                 }
             }
             if (eventMotion.getType() == EventMotion.Type.Post) {
                 if ((mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemBow || mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword) && mc.player.isHandActive()) {
-                    PacketUtils.send(new CPacketPlayerTryUseItem(EnumHand.MAIN_HAND));
+                    mc.player.connection.sendPacketNoEvent(new CPacketPlayerTryUseItem(EnumHand.MAIN_HAND));
                 }
             }
         }
     }
 
     @EventTarget
-    private void onRender2D(EventRender2D event) {
-
-        ScaledResolution sr = event.getScaledResolution();
-
-        if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemFood || mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemPotion || mc.player.getHeldItem(EnumHand.OFF_HAND).getItem() instanceof ItemFood) {
-            if (isHighGrim && render.getValue()) {
-                float width = tick * 3;
-                float x = sr.getScaledWidth() / 2F - 106;
-                float y = sr.getScaledHeight() / 2F - 2;
-
-                RoundedUtils.drawRound(x, y, 99, 4, 0, Color.gray);
-                RoundedUtils.drawRound(x, y, width, 4, 0, Color.WHITE);
-            }
-        } else {
-            isHighGrim = false;
-            tick = 0;
-        }
-    }
-
-    @EventTarget
     private void onUpdate(EventUpdate eventUpdate) {
-        if (isHighGrim) {
-            ++tick;
-        }
-
-        if (tick > 32) {
-            isHighGrim = false;
-        }
-
         if (modeValue.getValue().equals(mode.Normal) || (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemBow || mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword)) {
             slow = false;
         }
@@ -296,10 +305,6 @@ public class NoSlow extends Mode {
 
     @EventTarget
     private void onSlow(EventSlow eventSlow) {
-        if (modeValue.getValue().equals(mode.HighGrim) && UseSlow.getValue()) {
-            eventSlow.setSlow(isHighGrim);
-        }
-
         eventSlow.setCancelled(!slow);
     }
 }

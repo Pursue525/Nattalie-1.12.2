@@ -119,8 +119,6 @@ public class EntityPlayerSP extends AbstractClientPlayer
     public MovementInput movementInput;
     protected Minecraft mc;
 
-    public int postTick;
-
     /**
      * Used to tell if the player pressed forward twice. If this is at 0 and it's pressed (And they are allowed to
      * sprint, aka enough food on the ground etc) it sets this to 7. If it's pressed and it's greater than 0 enable
@@ -288,7 +286,6 @@ public class EntityPlayerSP extends AbstractClientPlayer
             double d2 = this.posZ - this.lastReportedPosZ;
             double d3 = (double)(motion.getRotationYaw() - this.lastReportedYaw);
             double d4 = (double)(motion.getRotationPitch() - this.lastReportedPitch);
-            ++this.positionUpdateTicks;
             boolean flag2 = d0 * d0 + d1 * d1 + d2 * d2 > 9.0E-4D || this.positionUpdateTicks >= 20;
             boolean flag3 = d3 != 0.0D || d4 != 0.0D;
 
@@ -313,15 +310,14 @@ public class EntityPlayerSP extends AbstractClientPlayer
                 this.connection.sendPacket(new CPacketPlayer(this.onGround));
             }
 
+            ++this.positionUpdateTicks;
+
             if (flag2) {
                 this.lastReportedPosX = this.posX;
                 this.lastReportedPosY = this.posY;
                 this.lastReportedPosZ = this.posZ;
                 this.positionUpdateTicks = 0;
-                this.postTick = 0;
             }
-
-            this.postTick++;
 
             Disabler disabler = (Disabler) Nattalie.instance.getModeManager().getByClass(Disabler.class);
             if (disabler.getGrimPost()) disabler.processPackets();
@@ -1011,7 +1007,6 @@ public class EntityPlayerSP extends AbstractClientPlayer
         EventSlow slow = new EventSlow(this.movementInput.moveStrafe, this.movementInput.field_192832_b, this.sprintToggleTimer);
         EventManager.instance.call(slow);
         if (this.isHandActive() && !this.isRiding()) {
-
             if (slow.isCancelled()) {
                 this.movementInput.moveStrafe *= 1;
                 this.movementInput.field_192832_b *= 1;

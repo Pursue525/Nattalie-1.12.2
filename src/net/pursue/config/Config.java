@@ -3,10 +3,6 @@ package net.pursue.config;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 
-/**
- * @author ChengFeng
- * @since 2023/3/19
- */
 @Getter
 public abstract class Config {
 

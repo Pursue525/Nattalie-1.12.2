@@ -7,7 +7,6 @@ import oshi.hardware.Processor;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -155,23 +154,23 @@ public class HWIDManager {
                     }
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException ignored) {
         }
 
         return userName == null;
     }
 
-    public static void saveCredentials(String username, String key, String configName) {
+    public static void saveCredentials(String username, String key, String configName, boolean sb) {
         Properties properties = new Properties();
         properties.setProperty("Name", username);
         properties.setProperty("Key", key);
         properties.setProperty("Config", configName);
+        properties.setProperty("AntiLiq", sb ? "true" : "false");
 
         try (FileOutputStream out = new FileOutputStream(Nattalie.instance.getCONFIG_FILE())) {
             properties.store(out, "User-Credentials");
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
+        } catch (IOException ignored) {
+
         }
     }
 
@@ -180,16 +179,18 @@ public class HWIDManager {
         String username = "";
         String key = "";
         String configName = "";
+        String antiLiq = "";
 
         try (FileInputStream in = new FileInputStream(Nattalie.instance.getCONFIG_FILE())) {
             properties.load(in);
             username = properties.getProperty("Name", "");
             key = properties.getProperty("Key", "");
             configName = properties.getProperty("Config", "");
+            antiLiq = properties.getProperty("AntiLiq", "");
         } catch (IOException e) {
         }
 
-        return new String[]{username, key, configName};
+        return new String[]{username, key, configName, antiLiq};
     }
 
     public static boolean checkKeyWithRemote(String key) {
@@ -249,8 +250,7 @@ public class HWIDManager {
             } finally {
                 connection.disconnect();
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException ignored) {
         }
 
         return false;
@@ -270,8 +270,6 @@ public class HWIDManager {
                 digestSB.append('0').append(hexString);
             } else if (hexString.length() == 2) {
                 digestSB.append(hexString);
-            } else {
-                throw new Exception("Byte toHexString return more than 2 characters? " + hexString + ":" + b);
             }
         }
 
@@ -291,10 +289,10 @@ public class HWIDManager {
             return new BufferedReader(new InputStreamReader(new URL("https://raw.gitcode.com/2301_78767572/PursueHWID/raw/master/README.md").openStream()))
                     .lines()
                     .collect(Collectors.joining())
-                    .contains(Nattalie.instance.getClientVersion());
+                    .contains(Nattalie.instance.getClientName() + "-" + Nattalie.instance.getClientVersion());
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException ignored) {
+            return false;
         }
     }
 
@@ -304,8 +302,7 @@ public class HWIDManager {
                 Desktop desktop = Desktop.getDesktop();
                 desktop.browse(new URI(url));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
     }
 }

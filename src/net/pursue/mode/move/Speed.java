@@ -5,11 +5,13 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.pursue.event.EventTarget;
 import net.pursue.event.player.EventMove;
-import net.pursue.utils.category.Category;
+import net.pursue.event.player.EventStrafe;
+import net.pursue.event.update.EventUpdate;
 import net.pursue.mode.Mode;
 import net.pursue.mode.player.Blink;
 import net.pursue.mode.player.Scaffold;
 import net.pursue.mode.world.Timer;
+import net.pursue.utils.category.Category;
 import net.pursue.utils.player.MovementUtils;
 import net.pursue.utils.rotation.SilentRotation;
 import net.pursue.value.values.ModeValue;
@@ -17,10 +19,10 @@ import net.pursue.value.values.NumberValue;
 
 public class Speed extends Mode {
 
-    private final ModeValue<mode> modeValue = new ModeValue<>(this, "Mode", mode.values(), mode.GrimEntity);
+    private final ModeValue<mode> modeValue = new ModeValue<>(this, "Mode", mode.values(), mode.Entity);
 
     enum mode {
-        GrimEntity,
+        Entity,
         Cote
     }
 
@@ -34,7 +36,16 @@ public class Speed extends Mode {
     private void onMove(EventMove eventMove) {
         if (Scaffold.INSTANCE.isEnable() || Timer.instance.isEnable()) return;
 
-        if (modeValue.getValue().equals(mode.GrimEntity)) {
+        if (modeValue.getValue().equals(mode.Entity)) {
+
+        } else {
+            eventMove.setSpeed(speed.getValue());
+        }
+    }
+
+    @EventTarget
+    private void onStrafe(EventStrafe strafe) {
+        if (modeValue.getValue().equals(mode.Entity) && mc.player != null) {
             AxisAlignedBB playerBox = mc.player.boundingBox.expand(1.0, 1.0, 1.0);
             int c = 0;
             for (Entity entity : mc.world.loadedEntityList) {
@@ -48,9 +59,12 @@ public class Speed extends Mode {
                 double mz = Math.cos(Math.toRadians(yaw));
                 mc.player.addVelocity(mx * strafeOffset, 0.0, mz * strafeOffset);
             }
-        } else {
-            eventMove.setSpeed(speed.getValue());
         }
+    }
+
+    @EventTarget
+    private void onUpdate(EventUpdate eventUpdate) {
+        setSuffix(modeValue.getValue().name());
     }
 
     private float getMoveYaw() {

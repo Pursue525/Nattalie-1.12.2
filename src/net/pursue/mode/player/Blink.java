@@ -1,101 +1,82 @@
 package net.pursue.mode.player;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockAir;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.IProjectile;
-import net.minecraft.entity.item.EntityTNTPrimed;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityEgg;
 import net.minecraft.entity.projectile.EntitySnowball;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.*;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.network.play.server.SPacketEntityVelocity;
 import net.minecraft.util.math.Vec3d;
+import net.pursue.Nattalie;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
-import net.pursue.event.update.EventTick;
+import net.pursue.event.update.EventUpdate;
 import net.pursue.event.world.EventWorldLoad;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
-import net.pursue.utils.player.PacketUtils;
+import net.pursue.mode.combat.KillAura;
+import net.pursue.ui.notification.NotificationType;
 import net.pursue.utils.TimerUtils;
-import net.pursue.utils.client.DebugHelper;
+import net.pursue.utils.category.Category;
+import net.pursue.utils.friend.FriendManager;
 import net.pursue.utils.player.FakePlayer;
-import net.pursue.value.values.BooleanValue;
+import net.pursue.utils.player.PacketUtils;
+import net.pursue.value.values.ColorValue;
 import net.pursue.value.values.ModeValue;
-import net.pursue.value.values.NumberValue;
-import org.lwjgl.opengl.GL11;
 
-import java.util.*;
+import java.awt.*;
+import java.util.LinkedList;
 
 public class Blink extends Mode {
 
     public static Blink instance;
-    public final ModeValue<mode> modeValue = new ModeValue<>(this, "Mode", mode.values(), mode.Normal);
 
-    public enum mode {
-        Normal,
-        Slow
+    private final ModeValue<mode> modeValue = new ModeValue<>(this, "Mode", mode.values(), mode.Normal);
+
+    enum mode {
+        Spartan,
+        Normal
     }
 
-    public final BooleanValue<Boolean> antiAimValue = new BooleanValue<>(this,"Anti Aim", true);
-    public final BooleanValue<Boolean> antiAimArrowValue = new BooleanValue<>(this,"Arrow", true, antiAimValue::getValue);
-    public final BooleanValue<Boolean> antiAimProjectileValue = new BooleanValue<>(this,"Projectile", true, antiAimValue::getValue);
-    public final BooleanValue<Boolean> antiAimTNTValue = new BooleanValue<>(this,"TNT", true, antiAimValue::getValue);
-    public final BooleanValue<Boolean> antiAimPlayerValue = new BooleanValue<>(this,"Player", true, antiAimValue::getValue);
-    private final NumberValue<Number> slowTick = new NumberValue<>(this, "SlowTick", 3,1,10,1,() -> modeValue.getValue().equals(mode.Slow));
+    public final ColorValue<Color> colorValue = new ColorValue<>(this, "color", Color.WHITE);
 
     public Blink() {
         super("Blink", "瞬移", "暂停所有移动发包后本体留原地，关闭后回到当前位置", Category.PLAYER);
         instance = this;
     }
 
-    private final List<List<Packet<?>>> packets = new ArrayList<>();
+    private final LinkedList<Packet<?>> packets = new LinkedList<Packet<?>>();
     private final TimerUtils timerUtils = new TimerUtils();
-    private final List<Vec3d> realPos = new ArrayList<>();
     public static FakePlayer fakePlayer;
-    private boolean isAir = false;
-    private Vec3d lastPos;
+    public static boolean pollPacketIng; // render
+    private boolean c0f;
+
+    public int c0fs;
+    private Vec3d c03Pos;
 
 
     @Override
     public void enable() {
+        packets.clear();
+        c0fs = 0;
+        pollPacketIng = false;
         if (Blink.mc.world != null && Blink.mc.player != null) {
             timerUtils.reset();
-
-            isAir = false;
-
-            packets.clear();
-            packets.add(new ArrayList<>());
-            realPos.add(new Vec3d(
-                    mc.player.posX,
-                    mc.player.posY,
-                    mc.player.posZ
-            ));
-            fakePlayer = new FakePlayer(mc.player);;
-            lastPos = new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ);
+            fakePlayer = new FakePlayer(mc.player);
+            fakePlayer.setSneaking(mc.player.isSneaking());
+            fakePlayer.setSprinting(mc.player.isSprinting());
+            c03Pos = new Vec3d(mc.player.posX, mc.player.posY, mc.player.posZ);
         }
     }
 
     @Override
     public void disable() {
         if (mc.player != null && mc.world != null) {
-            if (!isAir) {
-                allPoll();
-            } else {
-                DebugHelper.sendMessage("检测到您掉下虚空并且无法自救，已为您驳回移动");
 
-                if (Scaffold.INSTANCE.isEnable()) Scaffold.INSTANCE.setEnable(false);
-                antiAir();
-            }
+            pollPacketIng = true;
+
+            while (!packets.isEmpty()) sendPacket(packets.poll());
 
             try {
                 if (fakePlayer != null)
@@ -112,155 +93,119 @@ public class Blink extends Mode {
 
     @EventTarget
     private void onPacket(EventPacket event) {
-        if (mc.player == null) return;
+        if (mc.player == null) {
+            this.setEnable(false);
+            return;
+        }
 
         if (PacketUtils.isCPacket(event.getPacket())) {
-            mc.addScheduledTask(() -> {
-                packets.getLast().add(event.getPacket());
-            });
-            event.setCancelled(true);
+
+            if (event.getPacket() instanceof CPacketConfirmTransaction) {
+                c0fs++;
+            }
+
+            this.packets.add(event.getPacket());
+            event.cancelEvent();
+        }
+
+        if (event.getPacket() instanceof SPacketEntityVelocity velocity && velocity.getEntityID() == mc.player.getEntityId()) {
+            if (modeValue.getValue().equals(mode.Spartan)) {
+                setEnable(false);
+            }
         }
     }
 
     @EventTarget
-    private void onTick(EventTick event) {
+    private void onUpdate(EventUpdate update) {
+        setSuffix(String.valueOf(packets.size()));
 
-        packets.add(new ArrayList<>());
-        realPos.add(new Vec3d(
-                mc.player.posX,
-                mc.player.posY,
-                mc.player.posZ
-        ));
-        if (!packets.isEmpty()) {
-            if (mc.player.offGroundTicks >= 20) {
-                if (!isAir()) {
-                    isAir = true;
-                    setEnable(false);
-                }
-            }
-        }
-        if (antiAimValue.getValue()) {
-            while (true) {
-                boolean dangerous = false;
-                for (Entity entity : mc.world.getLoadedEntityList()) {
-                    if ((antiAimArrowValue.getValue() && entity instanceof EntityArrow arrow && !arrow.inGround) ||
-                            (antiAimProjectileValue.getValue() && entity instanceof EntitySnowball || entity instanceof EntityEgg) ||
-                            (antiAimTNTValue.getValue() && entity instanceof EntityTNTPrimed) ||
-                            (antiAimPlayerValue.getValue() && entity instanceof EntityPlayer player && player.getUniqueID() != mc.player.getUniqueID())
-                    ) {
-                        if (this.isDangerous(entity)) {
-                            dangerous = true;
-                            break;
+        if (fakePlayer != null) {
+            for (Entity player : mc.world.loadedEntityList) {
+                if (player != null && player != mc.player && player != fakePlayer && !player.isDead) {
+
+                    if (player instanceof EntityPlayer || player instanceof EntityEgg || player instanceof EntitySnowball || player instanceof EntityArrow) {
+
+                        if (player instanceof EntityPlayer && FriendManager.isFriend(player) || FriendManager.isBot(player)) continue;
+
+                        if (fakePlayer.getDistance(player) < 6.0) {
+                            while (!packets.isEmpty()) {
+                                Packet<?> packet = packets.poll();
+
+                                sendPacket(packet);
+
+                                if (fakePlayer.getDistance(player) > 6.0) break;
+                            }
+
+                            timerUtils.reset();
                         }
                     }
                 }
-                if (dangerous && packets.size() >= 3) {
-                    this.poll();
+            }
+        }
+
+        if (modeValue.getValue().equals(mode.Spartan)) {
+
+            if (c0fs > 100) c0f = true;
+
+            if (c0f) {
+                while (!packets.isEmpty()) {
+                    Packet<?> packet = packets.poll();
+
+                    sendPacket(packet);
+
+                    if (c0fs < 50) {
+                        c0f = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (KillAura.INSTANCE.target != null) {
+            while (!packets.isEmpty()) {
+                Packet<?> packet = packets.poll();
+
+                if (KillAura.INSTANCE.target.getDistance(c03Pos) > 6.0) {
+                    if (!(packet instanceof CPacketUseEntity || packet instanceof CPacketAnimation)) {
+                        sendPacket(packet);
+                    }
                 } else {
-                    break;
+                    sendPacket(packet);
+                }
+            }
+
+            timerUtils.reset();
+        }
+
+        if (timerUtils.hasTimePassed(9500)) {
+            Nattalie.instance.getNotificationManager().post(this.getName(), "你差点被Kick", 2000, NotificationType.INFO);
+
+            while (!packets.isEmpty()) sendPacket(packets.poll());
+
+            timerUtils.reset();
+        }
+
+        if (modeValue.getValue().equals(mode.Spartan)) {
+
+            if (fakePlayer != null && !packets.isEmpty()) {
+                if (!fakePlayer.onGround) {
+                    while (!packets.isEmpty()) {
+                        sendPacket(packets.poll());
+
+                        if (fakePlayer.onGround) break;
+                    }
+
+                    timerUtils.reset();
                 }
             }
         }
-
-        int i = slowTick.getValue().intValue() * 10;
-
-        if (Scaffold.INSTANCE.isEnable()) i = 30;
-        
-        if (modeValue.getValue().equals(mode.Slow)) {
-            if (timerUtils.hasTimePassed(i)) {
-                this.poll();
-                timerUtils.reset();
-            }
-        }
     }
 
+    public void sendPacket(Packet<?> packet) {
+        if (packet instanceof CPacketConfirmTransaction) c0fs--;
 
-    private void poll() {
-        if (packets.isEmpty()) return;
-        this.sendTick(packets.getFirst());
-        packets.removeFirst();
-    }
-
-    private void sendTick(List<Packet<?>> tick) {
-        tick.forEach(packet -> {
-            PacketUtils.sendPacketNoEvent(packet);
-            this.handleFakePlayerPacket(packet);
-        });
-    }
-
-    private void allPoll() {
-        if (!packets.isEmpty()) {
-            packets.forEach(this::sendTick);
-            packets.clear();
-        }
-    }
-
-    private void antiAir() {
-        if (!packets.isEmpty()) {
-            packets.forEach(packet -> {
-                if (packet instanceof CPacketConfirmTransaction) {
-                    sendTick(packet);
-                }
-            });
-            packets.clear();
-        }
-    }
-
-    private boolean isDangerous(Entity entity) {
-        final float width = 1.2F;
-        final float height = 2.2F;
-        if (entity instanceof IProjectile projectile) {
-            float motionSlowdown = 0.99F, size = 1.2F, gravity = 0.05F;
-            if (projectile instanceof EntityArrow) {
-                motionSlowdown = 0.99F;
-                size = 1.2F;
-                gravity = 0.05F;
-            } else if (projectile instanceof EntitySnowball || projectile instanceof EntityEgg) {
-                motionSlowdown = 0.99F;
-                gravity = 1.2F;
-                size = 0.25F;
-            }
-            return predictBox(
-                    entity.posX,
-                    entity.posY,
-                    entity.posZ,
-                    entity.motionX,
-                    entity.motionY,
-                    entity.motionZ,
-                    motionSlowdown,
-                    size,
-                    gravity,
-                    realPos,
-                    width / 2,
-                    height
-            );
-        } else if (entity instanceof EntityTNTPrimed tnt) {
-            Vec3d pos = realPos.getFirst();
-            return (tnt.getDistanceSq(
-                    pos.xCoord,
-                    pos.yCoord,
-                    pos.zCoord
-            ) <= 30 && tnt.getFuse() <= 10);
-        } else if (entity instanceof EntityPlayer player) {
-            Vec3d pos = realPos.getFirst();
-            return (player.getDistanceSq(
-                    pos.xCoord,
-                    pos.yCoord,
-                    pos.zCoord
-            ) <= 20);
-        }
-        return false;
-    }
-
-    private boolean isAir() {
-        for (int i = 1; i < 50; i++) {
-            Block blockState = mc.world.getBlockState(new BlockPos(mc.player.posX, mc.player.posY - i, mc.player.posZ)).getBlock();
-
-            if (blockState instanceof BlockAir) continue;
-
-            return true;
-        }
-        return false;
+        mc.player.connection.sendPacketNoEvent(packet);
+        handleFakePlayerPacket(packet);
     }
 
     private void handleFakePlayerPacket(Packet<?> packet) {
@@ -273,7 +218,7 @@ public class Blink extends Mode {
                     fakePlayer.rotationPitch,
                     3, true
             );
-            lastPos = new Vec3d(position.getX(0D), position.getY(0D), position.getZ(0D));
+            c03Pos = new Vec3d(position.getX(0D), position.getY(0D), position.getZ(0D));
             fakePlayer.onGround = position.isOnGround();
         } else if (packet instanceof CPacketPlayer.Rotation rotation) {
             fakePlayer.setPositionAndRotationDirect(
@@ -302,7 +247,7 @@ public class Blink extends Mode {
             );
             fakePlayer.onGround = positionRotation.isOnGround();
 
-            lastPos = new Vec3d(positionRotation.getX(0D), positionRotation.getY(0D), positionRotation.getZ(0D));
+            c03Pos = new Vec3d(positionRotation.getX(0D), positionRotation.getY(0D), positionRotation.getZ(0D));
             fakePlayer.rotationYawHead = positionRotation.getYaw(0F);
             fakePlayer.rotationYaw = positionRotation.getYaw(0F);
             fakePlayer.rotationPitch = positionRotation.getPitch(0F);
@@ -318,62 +263,14 @@ public class Blink extends Mode {
             }
         } else if (packet instanceof CPacketAnimation animation) {
             fakePlayer.swingArm(animation.getHand());
-        } else if (packet instanceof CPacketHeldItemChange heldItemChange) {
-            fakePlayer.inventory.currentItem = heldItemChange.getSlotId();
         }
     }
 
+    public long getTime() {
+        return this.timerUtils.getTimePassed();
+    }
 
-    public boolean predictBox(double posX, double posY, double posZ, double motionX, double motionY, double motionZ, double motionSlowdown, double size, double gravity, java.util.List<Vec3d> pos, float boxWidth, float boxHeight) {
-        RayTraceResult landingPosition = null;
-        boolean hasLanded = false;
-        int ticks = 0, ticksReleased = 0;
-
-        while (!hasLanded && posY > -60.0D) {
-            if (ticks >= pos.size()) {
-                break;
-            }
-            Vec3d posBefore = new Vec3d(posX, posY, posZ);
-            Vec3d posAfter = new Vec3d(posX + motionX, posY + motionY, posZ + motionZ);
-            landingPosition = Minecraft.getMinecraft().world.rayTraceBlocks(posBefore, posAfter, false, true, false);
-            posBefore = new Vec3d(posX, posY, posZ);
-            posAfter = new Vec3d(posX + motionX, posY + motionY, posZ + motionZ);
-            if (landingPosition != null) {
-                return false;
-            }
-
-            AxisAlignedBB arrowBox = new AxisAlignedBB(posX - size, posY - size, posZ - size, posX + size, posY + size, posZ + size);
-
-            Vec3d vec = pos.get(ticksReleased);
-            if (arrowBox.intersects(new AxisAlignedBB(
-                    vec.xCoord - boxWidth,
-                    vec.yCoord - boxHeight / 2F,
-                    vec.zCoord - boxWidth,
-                    vec.xCoord + boxWidth,
-                    vec.yCoord + boxHeight,
-                    vec.zCoord + boxWidth
-            ))) return true;
-
-            posX += motionX;
-            posY += motionY;
-            posZ += motionZ;
-            BlockPos var35 = new BlockPos(posX, posY, posZ);
-            Block var36 = Minecraft.getMinecraft().world.getBlockState(var35).getBlock();
-            if (var36.getBlockState().getBaseState().getMaterial() == Material.WATER) {
-                motionX *= 0.6D;
-                motionY *= 0.6D;
-                motionZ *= 0.6D;
-            } else {
-                motionX *= motionSlowdown;
-                motionY *= motionSlowdown;
-                motionZ *= motionSlowdown;
-            }
-
-            motionY -= gravity;
-            ticks++;
-
-            ticksReleased += 0;
-        }
-        return false;
+    public int getPackets() {
+        return packets.isEmpty() ? 0 : packets.size();
     }
 }

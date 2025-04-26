@@ -5,14 +5,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.text.TextFormatting;
-import net.pursue.Nattalie;
-import net.pursue.config.configs.HUDConfig;
 import net.pursue.config.configs.ModuleConfig;
 import net.pursue.utils.client.DebugHelper;
-import net.pursue.utils.client.HWIDManager;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -63,7 +59,6 @@ public class ConfigManager {
         }
 
         configs.add(new ModuleConfig());
-        configs.add(new HUDConfig());
     }
 
     private void loadConfig(String name) {

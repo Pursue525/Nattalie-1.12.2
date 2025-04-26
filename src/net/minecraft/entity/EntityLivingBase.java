@@ -2,14 +2,6 @@ package net.minecraft.entity;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Maps;
-import java.util.Collection;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import javax.annotation.Nullable;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLadder;
@@ -21,11 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.enchantment.EnchantmentFrostWalker;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.ai.attributes.AbstractAttributeMap;
-import net.minecraft.entity.ai.attributes.AttributeMap;
-import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.IAttribute;
-import net.minecraft.entity.ai.attributes.IAttributeInstance;
+import net.minecraft.entity.ai.attributes.*;
 import net.minecraft.entity.item.EntityBoat;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
@@ -34,17 +22,9 @@ import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntityArrow;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Enchantments;
-import net.minecraft.init.Items;
-import net.minecraft.init.MobEffects;
-import net.minecraft.init.SoundEvents;
+import net.minecraft.init.*;
 import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.item.EnumAction;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemArmor;
-import net.minecraft.item.ItemElytra;
-import net.minecraft.item.ItemStack;
+import net.minecraft.item.*;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.datasync.DataParameter;
@@ -70,6 +50,9 @@ import net.pursue.event.player.EventTickMotion;
 import net.pursue.mode.move.MoveFix;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import javax.annotation.Nullable;
+import java.util.*;
 
 public abstract class EntityLivingBase extends Entity
 {
@@ -589,7 +572,7 @@ public abstract class EntityLivingBase extends Entity
                 soundevent = SoundEvents.field_191258_p;
             }
 
-            this.playSound(soundevent, 1.0F, 1.0F);
+            //this.playSound(soundevent, 1.0F, 1.0F);
         }
     }
 
@@ -2044,11 +2027,11 @@ public abstract class EntityLivingBase extends Entity
 
     public void func_191986_a(float p_191986_1_, float p_191986_2_, float p_191986_3_) {
 
-        EventTickMotion tickMotion = new EventTickMotion();
+        EventTickMotion tickMotion = new EventTickMotion(20);
         EventManager.instance.call(tickMotion);
 
         if (this == Minecraft.getMinecraft().player) {
-            if (tickMotion.isCancelled() && Minecraft.getMinecraft().player.postTick < 20) return;
+            if (tickMotion.isCancelled() && Minecraft.getMinecraft().player.positionUpdateTicks < tickMotion.getTick()) return;
         }
 
         if (this.isServerWorld() || this.canPassengerSteer())

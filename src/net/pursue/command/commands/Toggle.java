@@ -11,7 +11,7 @@ public class Toggle
 extends Command {
 
     public Toggle() {
-        super("toggle");
+        super("Toggle");
     }
 
     @Override

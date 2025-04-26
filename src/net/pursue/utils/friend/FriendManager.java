@@ -3,7 +3,11 @@ package net.pursue.utils.friend;
 
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.pursue.Nattalie;
+import net.pursue.mode.misc.AntiBot;
+import net.pursue.mode.misc.Teams;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -44,7 +48,7 @@ public class FriendManager {
         }
 
         if (values != null) {
-            save(values.toString(), false);
+            save(values.toString());
         }
     }
 
@@ -57,7 +61,20 @@ public class FriendManager {
         return false;
     }
 
-    private static void save(final String content, final boolean append) {
+    public static boolean isFriend(Entity entity) {
+        for (String friend : friends) {
+            if (!friend.equals(entity.getName())) continue;
+
+            return true;
+        }
+        return Teams.instance.isTeam((EntityLivingBase) entity);
+    }
+
+    public static boolean isBot(Entity entity) {
+        return AntiBot.instance.isServerBot(entity);
+    }
+
+    private static void save(final String content) {
         try {
             final File f = new File(dir, "player.config");
             if (!f.exists()) {
@@ -66,7 +83,7 @@ public class FriendManager {
                 }
             }
             new Thread(() -> {
-                try (FileWriter writer = new FileWriter(f, append)) {
+                try (FileWriter writer = new FileWriter(f, false)) {
                     writer.write(content);
                 } catch (IOException e) {
                     throw new RuntimeException(e);

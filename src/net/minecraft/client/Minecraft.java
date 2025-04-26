@@ -107,11 +107,12 @@ import net.minecraft.world.storage.WorldInfo;
 import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
 import net.pursue.event.player.EventClickBlock;
+import net.pursue.event.player.EventPlace;
 import net.pursue.event.player.EventScreen;
 import net.pursue.event.update.EventTick;
 import net.pursue.shield.IsShield;
 import net.pursue.ui.client.MainMenu;
-import net.pursue.ui.client.exploit.Disclaimer;
+import net.pursue.ui.client.exploit.Setting;
 import net.pursue.ui.font.FontManager;
 import net.pursue.utils.client.DebugHelper;
 import net.pursue.utils.client.HWIDManager;
@@ -120,7 +121,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.Sys;
 import org.lwjgl.input.Keyboard;
@@ -484,7 +484,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         this.setWindowIcon();
         this.setInitialDisplayMode();
 
-        this.createDisplay("迷你世界国际版-1.12.2 -[" + Nattalie.instance.getClientVersion() +"]");
+        this.createDisplay(Nattalie.instance.getClientName() + "-1.12[" + Nattalie.instance.getClientVersion() +"]  Dev Build");
 
         Nattalie.instance.getConfigManager().init();
         Nattalie.instance.getModeHelper().init();
@@ -574,12 +574,6 @@ public class Minecraft implements IThreadListener, ISnooperInfo
          */
 
         try {
-            Nattalie.instance.getPlayer().init(new File(new File(Minecraft.getMinecraft().mcDataDir, Nattalie.instance.getClientName() + "/VerifyVideo"), "Verify.mp4"));
-        } catch (FFmpegFrameGrabber.Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
             hwid = HWIDManager.generateHardwareId();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -610,7 +604,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         this.renderGlobal.makeEntityOutlineShader();
 
         if (HWIDManager.checkKeyWithRemote(hwid)) {
-            this.displayGuiScreen(new Disclaimer());
+            this.displayGuiScreen(new Setting());
         } else {
             System.out.println("验证并未通过！");
             System.out.println("YOU HWID-> " + hwid);
@@ -1550,7 +1544,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         }
     }
 
-    private void sendClickBlockToController(boolean leftClick)
+    public void sendClickBlockToController(boolean leftClick)
     {
         if (!leftClick)
         {
@@ -2213,8 +2207,8 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         }
     }
 
-    private void processKeyBinds()
-    {
+    private void processKeyBinds() {
+
         for (; this.gameSettings.keyBindTogglePerspective.isPressed(); this.renderGlobal.setDisplayListEntitiesDirty())
         {
             ++this.gameSettings.thirdPersonView;
@@ -2310,60 +2304,52 @@ public class Minecraft implements IThreadListener, ISnooperInfo
             }
         }
 
-        if (this.player.isHandActive())
-        {
-            if (!this.gameSettings.keyBindUseItem.isKeyDown())
-            {
-                this.playerController.onStoppedUsingItem(this.player);
-            }
+        EventPlace place = new EventPlace();
+        EventManager.instance.call(place);
 
-            label109:
+        if (!place.isCancelled()) {
+            if (this.player.isHandActive()) {
+                if (!this.gameSettings.keyBindUseItem.isKeyDown()) {
+                    this.playerController.onStoppedUsingItem(this.player);
+                }
 
-            while (true)
-            {
-                if (!this.gameSettings.keyBindAttack.isPressed())
-                {
-                    while (this.gameSettings.keyBindUseItem.isPressed())
-                    {
-                        ;
-                    }
+                label109:
 
-                    while (true)
-                    {
-                        if (this.gameSettings.keyBindPickBlock.isPressed())
-                        {
-                            continue;
+                while (true) {
+                    if (!this.gameSettings.keyBindAttack.isPressed()) {
+                        while (this.gameSettings.keyBindUseItem.isPressed()) {
+                            ;
                         }
 
-                        break label109;
+                        while (true) {
+                            if (this.gameSettings.keyBindPickBlock.isPressed()) {
+                                continue;
+                            }
+
+                            break label109;
+                        }
                     }
                 }
-            }
-        }
-        else
-        {
-            while (this.gameSettings.keyBindAttack.isPressed())
-            {
-                this.clickMouse();
+            } else {
+                while (this.gameSettings.keyBindAttack.isPressed()) {
+                    this.clickMouse();
+                }
+
+                while (this.gameSettings.keyBindUseItem.isPressed()) {
+                    this.rightClickMouse();
+                }
+
+                while (this.gameSettings.keyBindPickBlock.isPressed()) {
+                    this.middleClickMouse();
+                }
             }
 
-            while (this.gameSettings.keyBindUseItem.isPressed())
-            {
+            if (this.gameSettings.keyBindUseItem.isKeyDown() && this.rightClickDelayTimer == 0 && !this.player.isHandActive()) {
                 this.rightClickMouse();
             }
 
-            while (this.gameSettings.keyBindPickBlock.isPressed())
-            {
-                this.middleClickMouse();
-            }
+            this.sendClickBlockToController(this.currentScreen == null && this.gameSettings.keyBindAttack.isKeyDown() && this.inGameHasFocus);
         }
-
-        if (this.gameSettings.keyBindUseItem.isKeyDown() && this.rightClickDelayTimer == 0 && !this.player.isHandActive())
-        {
-            this.rightClickMouse();
-        }
-
-        this.sendClickBlockToController(this.currentScreen == null && this.gameSettings.keyBindAttack.isKeyDown() && this.inGameHasFocus);
     }
 
     private void runTickMouse() throws IOException
@@ -3415,6 +3401,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
         this.renderViewEntity = viewingEntity;
         this.entityRenderer.loadEntityShader(viewingEntity);
     }
+
 
     public <V> ListenableFuture<V> addScheduledTask(Callable<V> callableToSchedule)
     {

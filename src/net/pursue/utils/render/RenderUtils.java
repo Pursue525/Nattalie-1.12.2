@@ -16,7 +16,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Timer;
 import net.minecraft.util.math.*;
-import net.pursue.utils.client.UtilsManager;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
@@ -737,5 +736,28 @@ public class RenderUtils {
         }
 
         return null;
+    }
+
+    public static void drawCircle(double x, double y, float radius, int color) {
+        float f = (color >> 24 & 0xFF) / 255.0F;
+        float f1 = (color >> 16 & 0xFF) / 255.0F;
+        float f2 = (color >> 8 & 0xFF) / 255.0F;
+        float f3 = (color & 0xFF) / 255.0F;
+        GL11.glColor4f(f1, f2, f3, f);
+
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.disableTexture2D();
+
+        glEnable(GL_POINT_SMOOTH);
+        glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+        glPointSize(radius * (2 * mc.gameSettings.guiScale));
+
+        glBegin(GL_POINTS);
+        glVertex2d(x, y);
+        glEnd();
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
     }
 }

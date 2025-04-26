@@ -1,6 +1,7 @@
 package net.minecraft.network.play.server;
 
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.network.Packet;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.network.play.INetHandlerPlayClient;
@@ -12,6 +13,7 @@ import java.io.IOException;
 @Getter
 public class SPacketChat implements Packet<INetHandlerPlayClient>
 {
+    @Setter
     private ITextComponent chatComponent;
     private ChatType type;
 

@@ -24,7 +24,7 @@ import net.minecraft.util.CryptManager;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.pursue.Nattalie;
-import net.pursue.mode.exploit.Protocol;
+import net.pursue.mode.client.Protocol;
 import net.pursue.utils.Germ.forge.FMLHandshakeClientState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -107,12 +107,14 @@ public class NetHandlerLoginClient implements INetHandlerLoginClient
 
     public void handleLoginSuccess(SPacketLoginSuccess packetIn)
     {
-        if (Nattalie.instance.getModeManager().getByClass(Protocol.class).isEnable()) {
-            Protocol.forgeChannel.currentState = FMLHandshakeClientState.START;
-        }
+
         this.gameProfile = packetIn.getProfile();
         this.networkManager.setConnectionState(EnumConnectionState.PLAY);
         this.networkManager.setNetHandler(new NetHandlerPlayClient(this.mc, this.previousGuiScreen, this.networkManager, this.gameProfile));
+
+        if (Nattalie.instance.getModeManager().getByClass(Protocol.class).isEnable()) {
+            Protocol.forgeChannel.currentState = FMLHandshakeClientState.START;
+        }
     }
 
     /**

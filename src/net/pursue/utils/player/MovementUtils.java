@@ -24,6 +24,33 @@ public class MovementUtils extends UtilsManager {
     public static final double MOD_SNEAK = 0.3F;
     public static final double MOD_WEB = 0.105 / WALK_SPEED;
 
+    public static void stuckMove() {
+        if (mc.player != null) {
+            x = mc.player.motionX;
+            y = mc.player.motionY;
+            z = mc.player.motionZ;
+        }
+    }
+
+    public static void resMove() {
+        if (mc.player != null) {
+            mc.player.motionX = x;
+            mc.player.motionY = y;
+            mc.player.motionZ = z;
+            x = 0.0;
+            y = 0.0;
+            z = 0.0;
+        }
+    }
+
+    public static void stopMove() {
+        if (mc.player != null) {
+            mc.player.motionX = 0.0;
+            mc.player.motionZ = 0.0;
+            mc.player.motionY = 0.0;
+        }
+    }
+
     public static float getMovingYaw() {
         return (float) (getDirection() * 180f / (float) Math.PI);
     }

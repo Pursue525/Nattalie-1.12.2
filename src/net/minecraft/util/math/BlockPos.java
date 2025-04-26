@@ -2,14 +2,17 @@ package net.minecraft.util.math;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
-import java.util.Iterator;
-import java.util.List;
-import javax.annotation.concurrent.Immutable;
+import net.minecraft.block.Block;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.Rotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import javax.annotation.concurrent.Immutable;
+import java.util.Iterator;
+import java.util.List;
 
 @Immutable
 public class BlockPos extends Vec3i
@@ -66,6 +69,10 @@ public class BlockPos extends Vec3i
     public BlockPos add(int x, int y, int z)
     {
         return x == 0 && y == 0 && z == 0 ? this : new BlockPos(this.getX() + x, this.getY() + y, this.getZ() + z);
+    }
+
+    public Block getBlock(WorldClient world) {
+        return world.getBlockState(this).getBlock();
     }
 
     /**

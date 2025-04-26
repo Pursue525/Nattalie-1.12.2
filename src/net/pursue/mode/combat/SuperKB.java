@@ -3,10 +3,10 @@ package net.pursue.mode.combat;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.network.play.client.CPacketEntityAction;
-import net.minecraft.util.math.RayTraceResult;
 import net.pursue.event.EventTarget;
-import net.pursue.event.update.EventTick;
+import net.pursue.event.player.EventAttack;
 import net.pursue.mode.Mode;
+import net.pursue.mode.player.Scaffold;
 import net.pursue.utils.category.Category;
 import net.pursue.value.values.ModeValue;
 
@@ -24,37 +24,35 @@ public class SuperKB extends Mode {
     }
 
     @EventTarget
-    public void onTick(EventTick eventTick) {
-        EntityLivingBase entity = getTarget();
+    public void onTick(EventAttack eventAttack) {
+        setSuffix(modeValue.getValue().name());
 
-        if (entity == null) return;
+
+        Entity entity = eventAttack.getTarget();
+
+        if (!(entity instanceof EntityLivingBase livingBase) || Scaffold.INSTANCE.isEnable()) return;
 
         switch (modeValue.getValue()) {
             case Normal -> {
-                if (entity.hurtTime == 10) {
+                if (livingBase.hurtTime == 10) {
                     mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SPRINTING));
                     mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SPRINTING));
                     mc.player.serverSprintState = true;
                 }
             }
             case Legit -> {
-                if (entity.hurtTime == 10) {
-                    if (mc.player.isSprinting()) {
-                        mc.player.setSprinting(false);
+                if (livingBase.hurtTime == 10 && mc.player.hurtTime <= 0) {
+                    if (mc.player.serverSprintState) {
+                        mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.STOP_SPRINTING));
                     }
-                    mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SPRINTING));
-                    mc.player.serverSprintState = true;
+
+                    mc.player.setSprinting(true);
+
+                    if (mc.player.serverSprintState) {
+                        mc.player.connection.sendPacket(new CPacketEntityAction(mc.player, CPacketEntityAction.Action.START_SPRINTING));
+                    }
                 }
             }
         }
-    }
-
-    private EntityLivingBase getTarget() {
-        RayTraceResult rayTraceResult = mc.objectMouseOver;
-
-        if (rayTraceResult != null && rayTraceResult.typeOfHit == RayTraceResult.Type.ENTITY) {
-            return (EntityLivingBase) rayTraceResult.entityHit;
-        }
-        return KillAura.INSTANCE.isEnable() ? KillAura.INSTANCE.target : null;
     }
 }

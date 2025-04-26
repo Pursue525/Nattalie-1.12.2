@@ -1,7 +1,6 @@
 package net.pursue.mode.combat;
 
-import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import de.florianmichael.vialoadingbase.ViaLoadingBase;
+import de.florianmichael.viamcp.fixes.AttackOrder;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
@@ -16,38 +15,27 @@ import net.minecraft.entity.passive.EntityBat;
 import net.minecraft.entity.passive.EntitySquid;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemAppleGold;
 import net.minecraft.item.ItemSword;
-import net.minecraft.network.play.client.CPacketAnimation;
 import net.minecraft.network.play.client.CPacketPlayerDigging;
-import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
-import net.minecraft.network.play.client.CPacketUseEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
-import net.pursue.Nattalie;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
 import net.pursue.event.render.EventRender3D;
 import net.pursue.event.update.EventMotion;
 import net.pursue.event.update.EventUpdate;
-import net.pursue.ui.font.FontManager;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
-import net.pursue.mode.misc.AntiBot;
-import net.pursue.mode.misc.Teams;
-import net.pursue.mode.move.Stuck;
-import net.pursue.mode.player.AutoHeal;
 import net.pursue.mode.player.Blink;
 import net.pursue.mode.player.Scaffold;
 import net.pursue.shield.IsShield;
+import net.pursue.utils.TimerUtils;
+import net.pursue.utils.category.Category;
 import net.pursue.utils.category.MoveCategory;
 import net.pursue.utils.client.DebugHelper;
 import net.pursue.utils.friend.FriendManager;
-import net.pursue.utils.player.PacketUtils;
-import net.pursue.utils.TimerUtils;
 import net.pursue.utils.render.RenderUtils;
 import net.pursue.utils.rotation.RotationUtils;
 import net.pursue.utils.rotation.SilentRotation;
@@ -71,6 +59,7 @@ public class KillAura extends Mode {
     private final NumberValue<Number> cps = new NumberValue<>(this, "CPS", 15,1,20,1);
 
     private final NumberValue<Number> range = new NumberValue<>(this, "Range", 3.35,1.00,8.00,0.01);
+    private final NumberValue<Number> fakeRange = new NumberValue<>(this, "RotationRange", 5,3.00,8.00,0.01);
 
     public final BooleanValue<Boolean> rayTrace =new BooleanValue<>(this,"RayTrace",false);
 
@@ -85,19 +74,14 @@ public class KillAura extends Mode {
 
     enum auraModes {
         Switch,
-        Single
+        Single,
+        Multiple
     }
 
     private final NumberValue<Double> delay = new NumberValue<>(this,"HandoffDelay",100.0,0.0,1000.0,10.0, () -> auraModesValue.getValue().equals(auraModes.Switch));
 
+    public final BooleanValue<Boolean> keepSprint =new BooleanValue<>(this,"KeepSprint",true);
     private final ModeValue<MoveCategory> StrafeValue = new ModeValue<>(this,"StrafeMode", MoveCategory.values(), MoveCategory.Strict);
-
-    private final ModeValue<rotationMode> rotationModeValue = new ModeValue<>(this, "RotationMode", rotationMode.values(), rotationMode.Legit);
-
-    enum rotationMode {
-        Legit,
-        OFF
-    }
 
     private final ModeValue<blockMode> blockModeValue = new ModeValue<>(this, "BlockMode", blockMode.values(), blockMode.Normal);
 
@@ -115,8 +99,6 @@ public class KillAura extends Mode {
 
     private final NumberValue<Number> circleAccuracy = new NumberValue<>(this,"CircleAccuracy", 60, 0, 60,5, circleValue::getValue);
 
-    private final BooleanValue<Boolean> swing =new BooleanValue<>(this,"Swing",true);
-
     private final NumberValue<Number> fov = new NumberValue<>(this,"FOV", 180.0,10.0,180.0,10.0);
 
     private final BooleanValue<Boolean>
@@ -131,8 +113,8 @@ public class KillAura extends Mode {
         INSTANCE = this;
     }
 
-    public EntityLivingBase target;
-    public boolean isBlock;
+    public EntityLivingBase target = null;
+    public boolean isBlock = false;
     private double reach = 0;
     private final TimerUtils attackTimer = new TimerUtils();
     private final TimerUtils switchTimer = new TimerUtils();
@@ -148,25 +130,18 @@ public class KillAura extends Mode {
 
     @Override
     public void disable() {
+        target = null;
         if (mc.player == null) return;
 
-        if (isBlock  && mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && blockModeValue.getValue().equals(blockMode.Normal)) {
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
-            PacketUtils.send(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
-            isBlock = false;
-        }
+        stopBlock();
     }
 
     @EventTarget
     private void onMotion(EventMotion eventMotion) {
         if (eventMotion.getType() == EventMotion.Type.Pre) {
-            if (AutoHeal.instance.isEnable() && AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple) || Nattalie.instance.getModeManager().getByClass(Stuck.class).isEnable()) {
-                reach = 3.55;
-            } else {
-                reach = range.getValue().doubleValue();
-            }
+            reach = range.getValue().doubleValue();
 
-            if ((target instanceof EntityPlayer || target instanceof EntityMob || target instanceof EntityAnimal) && (((target.getHealth() <= 0 || target.isDead) || dead.getValue()) || mc.player.getDistance(target.posX, target.posY, target.posZ) > reach)) {
+            if ((target instanceof EntityPlayer || target instanceof EntityMob || target instanceof EntityAnimal) && (((target.getHealth() <= 0 || target.isDead) || dead.getValue()) || mc.player.getDistance(target.posX, target.posY, target.posZ) > fakeRange.getValue().doubleValue())) {
                 target = null;
             }
             if (target != null) {
@@ -182,7 +157,7 @@ public class KillAura extends Mode {
                         target instanceof EntitySlime ||
                         target instanceof EntityGhast ||
                         target instanceof EntityDragon) {
-                    if (target.getHealth() <= 0 || target.isDead || mc.player.getDistance(target.posX, target.posY, target.posZ) > reach) {
+                    if (target.getHealth() <= 0 || target.isDead || mc.player.getDistance(target.posX, target.posY, target.posZ) > fakeRange.getValue().doubleValue()) {
                         target = null;
                     }
                 }
@@ -205,8 +180,8 @@ public class KillAura extends Mode {
                         if (!targets.isEmpty()) {
                             if (targets.size() > 1) {
                                 if (switchTimer.hasTimePassed(delay.getValue().intValue())) {
-                                    switchTimer.reset();
                                     ++index;
+                                    switchTimer.reset();
                                 }
                             }
                             if (index >= targets.size()) {
@@ -214,6 +189,20 @@ public class KillAura extends Mode {
                             }
 
                             target = targets.get(index);
+                        }
+                        break;
+                    }
+                    case Multiple: {
+                        if (!targets.isEmpty()) {
+                            doBlock();
+
+                            targets.forEach(entityLivingBase -> {
+                                if (entityLivingBase.getDistance(mc.player) <= range.getValue().doubleValue()) {
+                                    attackEntity(entityLivingBase);
+                                }
+                            });
+                        } else {
+                            stopBlock();
                         }
                     }
                 }
@@ -223,40 +212,47 @@ public class KillAura extends Mode {
 
     @EventTarget
     private void onUpdate(EventUpdate event) {
-        float[] vector2f;
+
+        setSuffix(auraModesValue.getValue().name());
 
         if (target != null) {
 
-            if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword) doBlock();
-
-            if (!rayTrace.getValue() || rayModeValue.getValue().equals(rayMode.Normal)) {
-                if (rotationModeValue.getValue() == rotationMode.Legit) {
-                    vector2f = RotationUtils.getRotations(target);
-
-                    SilentRotation.setRotation(new Vector2f(vector2f), MoveCategory.valueOf(StrafeValue.getValue().name()));
-                }
+            if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && !Scaffold.INSTANCE.isEnable()) {
+                doBlock();
+            } else {
+                stopBlock();
             }
 
-            EntityLivingBase targetEntity = target;
-            if (attackTimer.hasTimePassed((long) (1000.0 / (cps.getValue().intValue() * 1.5)))) {
-                if (rayTrace.getValue() && rayModeValue.getValue().equals(rayMode.Normal)) {
-                    targetEntity = (EntityLivingBase) RotationUtils.getLookingAtEntity(3.3);
-                }
+            EntityLivingBase targetEntity = null;
 
-                if (targetEntity != null) {
-                    mc.playerController.attackEntity(mc.player, targetEntity);
-
-                    if (swing.getValue()) {
-                        mc.player.swingArm(EnumHand.MAIN_HAND);
-                    } else {
-                        PacketUtils.send(new CPacketAnimation(EnumHand.MAIN_HAND));
-                    }
-                }
-                attackTimer.reset();
+            if (mc.player.getDistance(target.posX, target.posY, target.posZ) < range.getValue().doubleValue()) {
+                targetEntity = target;
             }
 
+            if (rayTrace.getValue() && rayModeValue.getValue().equals(rayMode.Normal)) {
+                targetEntity = (EntityLivingBase) RotationUtils.getLookingAtEntity(3.3);
+            }
+
+            if (targetEntity != null) {
+                attackEntity(targetEntity);
+            }
         } else {
             stopBlock();
+        }
+    }
+
+    @EventTarget
+    private void onPacket(EventPacket packet) {
+        if (mc.player == null) return;
+
+        if (mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && isBlock) {
+            if (packet.getPacket() instanceof CPacketPlayerDigging digging && digging.getAction() == CPacketPlayerDigging.Action.RELEASE_USE_ITEM) {
+                isBlock = false;
+
+                if (target != null && target.getDistance(mc.player) < range.getValue().doubleValue()) {
+                    DebugHelper.sendMessage("AutoBlock", "你他妈的漏防了");
+                }
+            }
         }
     }
 
@@ -287,6 +283,7 @@ public class KillAura extends Mode {
             }
             GL11.glVertex2f((float) (Math.cos(360 * Math.PI / 180.0) * range.getValue().floatValue()), (float) (Math.sin(360 * Math.PI / 180.0) * range.getValue().floatValue()));
 
+            GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
             GL11.glEnd();
 
             GL11.glDisable(GL11.GL_BLEND);
@@ -298,11 +295,14 @@ public class KillAura extends Mode {
         }
 
         if (box.getValue()) {
-            if (target != null) {
-                AxisAlignedBB bb = target.getEntityBoundingBox();
-                target.setEntityBoundingBox(bb.expand(0.05, 0.05, 0.05));
-                RenderUtils.drawEntityBox(target, target.hurtTime != 0 ? new Color(255, 0, 0, 60) : new Color(circleRGB.getColor().getRed(), circleRGB.getColor().getGreen(), circleRGB.getColor().getBlue(), 60), true);
-                target.setEntityBoundingBox(bb);
+            if (!getTargets().isEmpty()) {
+                for (EntityLivingBase livingBase : getTargets()) {
+
+                    AxisAlignedBB bb = livingBase.getEntityBoundingBox();
+                    livingBase.setEntityBoundingBox(bb.expand(0.02, 0.02, 0.02));
+                    RenderUtils.drawEntityBox(livingBase, livingBase.hurtTime != 0 ? new Color(255, 0, 0, 60) : new Color(circleRGB.getColor().getRed(), circleRGB.getColor().getGreen(), circleRGB.getColor().getBlue(), 60), true);
+                    livingBase.setEntityBoundingBox(bb);
+                }
             }
         }
     }
@@ -311,7 +311,7 @@ public class KillAura extends Mode {
         List<EntityLivingBase> targets = new ArrayList<>();
         for (Entity entity : mc.world.loadedEntityList) {
             if (entity instanceof EntityLivingBase sb) {
-                if (!checkEntity(sb) || mc.player.getDistance(sb.posX, sb.posY, sb.posZ) > reach) continue;
+                if (!checkEntity(sb) || mc.player.getDistance(sb.posX, sb.posY, sb.posZ) > fakeRange.getValue().doubleValue()) continue;
 
                 targets.add(sb);
             }
@@ -319,10 +319,20 @@ public class KillAura extends Mode {
         return targets;
     }
 
+    private void attackEntity(Entity entity) {
+
+        SilentRotation.setRotation(new Vector2f(RotationUtils.getRotations(entity)), MoveCategory.valueOf(StrafeValue.getValue().name()));
+
+        if (attackTimer.hasTimePassed((long) (1000.0 / (cps.getValue().intValue() * 1.5)))) {
+            AttackOrder.sendFixedAttack(mc.player, entity, EnumHand.MAIN_HAND);
+            attackTimer.reset();
+        }
+    }
+
     private void doBlock() {
         switch ((blockMode) blockModeValue.getValue()) {
             case Normal: {
-                PacketUtils.send(new CPacketPlayerTryUseItem(EnumHand.MAIN_HAND));
+                KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
                 isBlock = true;
                 break;
             }
@@ -340,7 +350,8 @@ public class KillAura extends Mode {
     private void stopBlock() {
         if (isBlock && mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemSword && blockModeValue.getValue().equals(blockMode.Normal)) {
             isBlock = false;
-            PacketUtils.send(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
+            mc.player.connection.sendPacket(new CPacketPlayerDigging(CPacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
         } else if (isBlock) {
             isBlock = false;
         }
@@ -351,15 +362,15 @@ public class KillAura extends Mode {
             return false;
         }
 
-        if (AntiBot.instance.isServerBot(entity) || !entity.isEntityAlive() && !dead.getValue()) {
+        if (FriendManager.isBot(entity) || !entity.isEntityAlive() && !dead.getValue()) {
             return false;
         }
 
-        if (Blink.instance.isEnable() || Scaffold.INSTANCE.isScaffold) {
+        if (Scaffold.INSTANCE.isScaffold || Blink.fakePlayer != null && Blink.fakePlayer == entity) {
             return false;
         }
 
-        if (entity instanceof EntityPlayer && players.getValue() && !Teams.instance.isTeam((EntityLivingBase) entity)) {
+        if (entity instanceof EntityPlayer && players.getValue() && !FriendManager.isFriend(entity)) {
             return true;
         }
 

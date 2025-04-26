@@ -1,52 +1,38 @@
 package net.pursue.mode.render;
 
 import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
 import net.pursue.Nattalie;
 import net.pursue.event.EventTarget;
 import net.pursue.event.render.EventRender2D;
 import net.pursue.mode.Mode;
-import net.pursue.mode.hud.Armor;
 import net.pursue.mode.misc.AntiBot;
 import net.pursue.mode.misc.Teams;
-import net.pursue.ui.font.FontManager;
+import net.pursue.mode.player.Blink;
 import net.pursue.utils.MathUtils;
 import net.pursue.utils.category.Category;
 import net.pursue.utils.friend.FriendManager;
 import net.pursue.utils.render.RenderUtils;
-import net.pursue.utils.render.RoundedUtils;
-import net.pursue.value.values.BooleanValue;
-import net.pursue.value.values.ColorValue;
-import org.lwjgl.opengl.GL11;
 
 import javax.vecmath.Vector3d;
 import javax.vecmath.Vector4d;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class ESP extends Mode {
-
     public ESP() {
         super("ESP", "透视", "张开第三只眼，将大局逆转吧！", Category.RENDER);
     }
 
     @EventTarget
     private void onRender(EventRender2D event) {
-        GL11.glPushMatrix();
-
-        final double scaling = event.getScaledResolution().getScaleFactor() / Math.pow(event.getScaledResolution().getScaleFactor(), 2.0);
-        GlStateManager.scale(scaling, scaling, scaling);
 
         for (EntityPlayer entity : mc.world.playerEntities) {
+
             if (entity.getEntityId() != mc.player.getEntityId()) {
                 if (entity.isDead) {
                     continue;
@@ -54,6 +40,8 @@ public class ESP extends Mode {
 
                 if (entity == mc.player && mc.gameSettings.thirdPersonView == 0)
                     continue;
+
+                if (Blink.fakePlayer != null && entity == Blink.fakePlayer) continue;
 
                 final double x = MathUtils.interpolateSmooth(entity.posX, entity.lastTickPosX, event.getPartialTicks()),
                         y = MathUtils.interpolateSmooth(entity.posY, entity.lastTickPosY, event.getPartialTicks()),
@@ -98,8 +86,6 @@ public class ESP extends Mode {
                 }
             }
         }
-        GL11.glPopMatrix();
-        mc.entityRenderer.setupOverlayRendering();
     }
 
     public static Color getEntityColor(Entity entity) {

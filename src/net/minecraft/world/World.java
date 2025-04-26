@@ -4,14 +4,6 @@ import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-import java.util.function.Supplier;
-import javax.annotation.Nullable;
 import net.minecraft.advancements.AdvancementManager;
 import net.minecraft.advancements.FunctionManager;
 import net.minecraft.block.Block;
@@ -35,19 +27,8 @@ import net.minecraft.profiler.Profiler;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EntitySelectors;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumParticleTypes;
-import net.minecraft.util.ITickable;
-import net.minecraft.util.IntHashMap;
-import net.minecraft.util.ReportedException;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.*;
+import net.minecraft.util.math.*;
 import net.minecraft.village.VillageCollection;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeProvider;
@@ -60,6 +41,10 @@ import net.minecraft.world.storage.MapStorage;
 import net.minecraft.world.storage.WorldInfo;
 import net.minecraft.world.storage.WorldSavedData;
 import net.minecraft.world.storage.loot.LootTableManager;
+import net.pursue.mode.render.ItemDeBug;
+
+import javax.annotation.Nullable;
+import java.util.*;
 
 public abstract class World implements IBlockAccess
 {
@@ -1309,6 +1294,13 @@ public abstract class World implements IBlockAccess
         if (entityIn instanceof EntityPlayer)
         {
             this.playerEntities.remove(entityIn);
+
+            if (ItemDeBug.Instance.isEnable()) {
+                if (!ItemDeBug.pList.isEmpty()) {
+                    ItemDeBug.pList.removeIf(playerData -> playerData.base().getName().equals(entityIn.getName()));
+                }
+            }
+
             this.updateAllPlayersSleepingFlag();
         }
 

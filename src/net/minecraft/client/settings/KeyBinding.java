@@ -2,12 +2,13 @@ package net.minecraft.client.settings;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.IntHashMap;
 import org.lwjgl.input.Keyboard;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
 public class KeyBinding implements Comparable<KeyBinding>
 {
@@ -48,6 +49,10 @@ public class KeyBinding implements Comparable<KeyBinding>
                 keybinding.pressed = pressed;
             }
         }
+    }
+
+    public void setPressed(boolean pressed) {
+        this.pressed = pressed;
     }
 
     public static void updateKeyBindState()

@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.ContainerBrewingStand;
-import net.minecraft.inventory.ContainerFurnace;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
@@ -13,8 +12,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
-import net.pursue.Nattalie;
-import net.pursue.mode.hud.Inventory;
 import net.pursue.mode.player.Stealer;
 import net.pursue.ui.font.FontManager;
 import net.pursue.utils.render.RenderUtils;
@@ -45,6 +42,8 @@ public class GuiBrewingStand extends GuiContainer
     public void drawScreen(int mouseX, int mouseY, float partialTicks)
     {
         if (Stealer.instance.isEnable() && Stealer.instance.silent.getValue()) {
+            ContainerBrewingStand brewingStand = (ContainerBrewingStand) mc.player.openContainer;
+
             GuiScreen guiScreen = mc.currentScreen;
             mc.setIngameFocus();
             mc.currentScreen = guiScreen;
@@ -70,7 +69,6 @@ public class GuiBrewingStand extends GuiContainer
             GL11.glPushMatrix();
             GL11.glTranslated(pos.x - width / 2 - 25F, startY, 0);
             RenderHelper.enableGUIStandardItemLighting();
-
 
             for (int i1 = 0; i1 <= 5; i1++) {
                 Slot slot = this.inventorySlots.inventorySlots.get(i1);

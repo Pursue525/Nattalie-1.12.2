@@ -1,7 +1,5 @@
 package net.minecraft.client.gui;
 
-import java.io.IOException;
-import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ITabCompleter;
 import net.minecraft.util.TabCompleter;
@@ -10,14 +8,15 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
-import net.pursue.Nattalie;
-
 import net.pursue.utils.HUDData;
 import net.pursue.utils.HUDManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
 
 public class GuiChat extends GuiScreen implements ITabCompleter
 {
@@ -331,7 +330,4 @@ public class GuiChat extends GuiScreen implements ITabCompleter
         }
     }
 
-    public static boolean isHovering(float x, float y, float width, float height, int mouseX, int mouseY) {
-        return mouseX >= x && mouseY >= y && mouseX < x + width && mouseY < y + height;
-    }
 }

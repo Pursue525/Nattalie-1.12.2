@@ -82,7 +82,7 @@ import net.minecraft.world.storage.MapData;
 import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
 import net.pursue.event.packet.EventPacket;
-import net.pursue.mode.exploit.Protocol;
+import net.pursue.mode.client.Protocol;
 import net.pursue.mode.misc.Disabler;
 import net.pursue.ui.client.MainMenu;
 import net.pursue.utils.Germ.Wrapper;
@@ -99,6 +99,8 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NetHandlerPlayClient implements INetHandlerPlayClient
 {
@@ -178,7 +180,12 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient
         this.gameController.player.setReducedDebug(packetIn.isReducedDebugInfo());
         this.gameController.playerController.setGameType(packetIn.getGameType());
         this.gameController.gameSettings.sendSettingsToServer();
-        this.netManager.sendPacket(new CPacketCustomPayload("MC|Brand", (new PacketBuffer(Unpooled.buffer())).writeString(ClientBrandRetriever.getClientModName())));
+
+        if (Nattalie.instance.getModeManager().getByClass(Protocol.class).isEnable()) {
+            this.netManager.sendPacket(new CPacketCustomPayload("MC|Brand", (new PacketBuffer(Unpooled.buffer())).writeString("forge")));
+        } else {
+            this.netManager.sendPacket(new CPacketCustomPayload("MC|Brand", (new PacketBuffer(Unpooled.buffer())).writeString(ClientBrandRetriever.getClientModName())));
+        }
     }
 
     /**
@@ -784,10 +791,31 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient
     /**
      * Prints a chatmessage in the chat GUI
      */
-    public void handleChat(SPacketChat packetIn)
+    public void handleChat(SPacketChat packet)
     {
-        PacketThreadUtil.checkThreadAndEnqueue(packetIn, this, this.gameController);
-        this.gameController.ingameGUI.func_191742_a(packetIn.func_192590_c(), packetIn.getChatComponent());
+
+        String message = packet.getChatComponent().getUnformattedText();
+
+        if (message.contains("在本局游戏中行为异常, 已被踢出游戏并封禁处罚")) {
+
+            String regex = "玩家(\\S+)在";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(message);
+
+            if (matcher.find()) {
+                String playerName = matcher.group(1);
+
+                TextComponentTranslation textcomponenttranslation = new TextComponentTranslation("➤ 挂逼玩家" + playerName + "因为开挂没脑子已经被Grim曹寺", new Object[0]);
+                textcomponenttranslation.getStyle().setColor(TextFormatting.RED);
+                SPacketChat chat = new SPacketChat(textcomponenttranslation);
+
+                PacketThreadUtil.checkThreadAndEnqueue(chat, this, this.gameController);
+                this.gameController.ingameGUI.func_191742_a(chat.func_192590_c(), chat.getChatComponent());
+            }
+        } else {
+            PacketThreadUtil.checkThreadAndEnqueue(packet, this, this.gameController);
+            this.gameController.ingameGUI.func_191742_a(packet.func_192590_c(), packet.getChatComponent());
+        }
     }
 
     /**
@@ -1874,8 +1902,6 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient
     public void handleCustomPayload(SPacketCustomPayload packetIn)
     {
         PacketThreadUtil.checkThreadAndEnqueue(packetIn, this, this.gameController);
-
-
         if (Nattalie.instance.getModeManager().getByClass(Protocol.class).isEnable()) {
             if (packetIn.getChannelName().equalsIgnoreCase("FML|HS") || packetIn.getChannelName().equalsIgnoreCase("REGISTER") || packetIn.getChannelName().equalsIgnoreCase("UNREGISTER")) {
                 Protocol.forgeChannel.processForge(packetIn);

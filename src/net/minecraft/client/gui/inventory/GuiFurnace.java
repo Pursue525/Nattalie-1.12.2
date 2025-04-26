@@ -12,8 +12,6 @@ import net.minecraft.tileentity.TileEntityFurnace;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
-import net.pursue.Nattalie;
-import net.pursue.mode.hud.Inventory;
 import net.pursue.mode.player.Stealer;
 import net.pursue.ui.font.FontManager;
 import net.pursue.utils.render.RenderUtils;
@@ -43,6 +41,7 @@ public class GuiFurnace extends GuiContainer
     public void drawScreen(int mouseX, int mouseY, float partialTicks)
     {
         if (Stealer.instance.isEnable() && Stealer.instance.silent.getValue()) {
+            ContainerFurnace furnace = (ContainerFurnace) mc.player.openContainer;
 
             GuiScreen guiScreen = mc.currentScreen;
             mc.setIngameFocus();
@@ -73,7 +72,6 @@ public class GuiFurnace extends GuiContainer
             GL11.glTranslated(pos.x - width / 2 - 25F, startY, 0);
             RenderHelper.enableGUIStandardItemLighting();
 
-
             for (int i1 = 0; i1 < 2; i1++) {
                 Slot slot = this.inventorySlots.inventorySlots.get(i1);
                 ItemStack is = slot.getStack();
@@ -86,7 +84,6 @@ public class GuiFurnace extends GuiContainer
             GlStateManager.disableLighting();
             GlStateManager.disableCull();
             GL11.glPopMatrix();
-
             return;
         }
         this.drawDefaultBackground();

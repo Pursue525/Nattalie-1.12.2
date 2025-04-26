@@ -1,6 +1,7 @@
 package net.minecraft.util.math;
 
 import com.google.common.base.MoreObjects;
+
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
@@ -113,6 +114,22 @@ public class Vec3i implements Comparable<Vec3i>
         double d0 = (double)(this.getX() - xIn);
         double d1 = (double)(this.getY() - yIn);
         double d2 = (double)(this.getZ() - zIn);
+        return Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+    }
+
+    public double getDistance(double xIn, double yIn, double zIn)
+    {
+        double d0 = (double)(this.getX() - xIn);
+        double d1 = (double)(this.getY() - yIn);
+        double d2 = (double)(this.getZ() - zIn);
+        return Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+    }
+
+    public double getDistance(BlockPos In)
+    {
+        double d0 = (double)(this.getX() - In.getX());
+        double d1 = (double)(this.getY() - In.getY());
+        double d2 = (double)(this.getZ() - In.getZ());
         return Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
     }
 

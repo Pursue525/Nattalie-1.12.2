@@ -5,19 +5,17 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.pursue.ui.font.RapeMasterFontManager;
-import net.pursue.utils.client.DebugHelper;
-import org.lwjgl.BufferUtils;
+import net.pursue.Nattalie;
+import net.pursue.ui.font.FontUtils;
 import org.lwjgl.opengl.GL11;
 
-
 import java.awt.*;
-import java.nio.FloatBuffer;
 
-import static net.minecraft.client.renderer.OpenGlHelper.glUniform1;
+import static net.pursue.utils.render.StencilUtils.checkSetupFBO;
 import static org.lwjgl.opengl.GL11.*;
 
 
@@ -29,26 +27,74 @@ public class RoundedUtils {
     public static float width;
     public static float height;
 
-    public static void drawRound_Rectangle(RapeMasterFontManager fontManager, String string, float x, float y, float radius, Color stringColor, Color backgroundColor, int width, int height, boolean fix) {
+    public static float[] drawRound_Rectangle(FontUtils fontManager, String string, float x, float y, float radius, Color stringColor, Color backgroundColor, int width, int height, boolean fix) {
 
         if (fix) {
             drawRound(x - 2 - width / 2f, y - height / 2f, fontManager.getStringWidth(string) + 4 + width, fontManager.getHeight() - 4 + height, radius, backgroundColor);
-
             RoundedUtils.width = fontManager.getStringWidth(string) + 4 + width;
-            RoundedUtils.height = fontManager.getHeight() - 4 + height;
-
         } else {
             drawRound(x - width / 2f, y - height / 2f, fontManager.getStringWidth(string) + width, fontManager.getHeight() - 4 + height, radius, backgroundColor);
 
             RoundedUtils.width = fontManager.getStringWidth(string) + width;
-            RoundedUtils.height = fontManager.getHeight() - 4 + height;
-
         }
+        RoundedUtils.height = fontManager.getHeight() - 4 + height;
         fontManager.drawString(string, x,y, stringColor.getRGB());
 
+        return new float[] {RoundedUtils.width, RoundedUtils.height};
     }
 
-    public static void drawRound_Rectangle(RapeMasterFontManager fontManager, String string, float x, float y, float radius, Color stringColor, Color backgroundColor, Color backgroundColor2, int width, int height, boolean fix) {
+    public static float[] drawRound_Rectangle(FontUtils fontManager, String string, String string2, float x, float y, float radius, Color stringColor, Color backgroundColor, int width, int height, boolean fix) {
+
+        if (fix) {
+            drawRound(x - 2 - width / 2f, y - height / 2f, fontManager.getStringWidth(string) + 4 + width, fontManager.getHeight() - 4 + height, radius, backgroundColor);
+            RoundedUtils.width = fontManager.getStringWidth(string) + 4 + width;
+        } else {
+            drawRound(x - width / 2f, y - height / 2f, fontManager.getStringWidth(string) + width, fontManager.getHeight() - 4 + height, radius, backgroundColor);
+
+            RoundedUtils.width = fontManager.getStringWidth(string) + width;
+        }
+        RoundedUtils.height = fontManager.getHeight() - 4 + height;
+        fontManager.drawString(string, x,y, stringColor.getRGB());
+
+        return new float[] {RoundedUtils.width, RoundedUtils.height};
+    }
+
+    public static void drawRoundBlur(float x, float y, float width, float height, float radius, Color color, int blurInt) {
+        if (Nattalie.blur) {
+            enableDrawBlur(Minecraft.getMinecraft());
+            drawRound(x, y, width, height, radius, Color.BLACK);
+            disableDrawBlur(blurInt);
+            drawRound(x, y, width, height, radius, color);
+        } else {
+            drawRound(x, y, width, height, radius, color);
+        }
+    }
+
+    public static void enableDrawBlur(Minecraft mc) {
+        if (Nattalie.blur) {
+            mc.getFramebuffer().bindFramebuffer(false);
+            checkSetupFBO(mc.getFramebuffer());
+            glClear(GL_STENCIL_BUFFER_BIT);
+            glEnable(GL_STENCIL_TEST);
+            glStencilFunc(GL_ALWAYS, 1, 1);
+            glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+            glColorMask(false, false, false, false);
+        }
+    }
+
+    public static void disableDrawBlur(int blurInt) {
+        if (Nattalie.blur) {
+            glColorMask(true, true, true, true);
+            glStencilFunc(GL_EQUAL, 1, 1);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+            GaussianBlur.renderBlur(blurInt);
+            glDisable(GL_STENCIL_TEST);
+        }
+    }
+
+
+
+    public static void drawRound_Rectangle(FontUtils fontManager, String string, float x, float y, float radius, Color stringColor, Color backgroundColor, Color backgroundColor2, int width, int height, boolean fix) {
         drawRound(x - 2 - width / 2f, (y - height / 2f) - 1, fontManager.getStringWidth(string) + 4 + width, 1, radius, backgroundColor2);
         drawRound_Rectangle(fontManager, string, x, y, radius, stringColor, backgroundColor, width, height, fix);
     }
@@ -67,7 +113,35 @@ public class RoundedUtils {
         GlStateManager.disableBlend();
     }
 
-    public static void drawHead(EntityLivingBase entity, float x, float y, int width, int height, float radius) {
+    public static void enableRoundNoRender(float x, float y, float width, float height, float radius) {
+        GL11.glPopMatrix();
+        GL11.glPushMatrix();
+        GL11.glColor4f(1f, 1, 1, 1f);
+        StencilUtils.write(false);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glPushMatrix();
+
+        drawRound(x, y, width, height, radius, Color.BLACK);
+
+        GL11.glPopMatrix();
+        GlStateManager.resetColor();
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        StencilUtils.erase(true);
+        GL11.glPushMatrix();
+    }
+
+    public static void disableRoundNoRender() {
+        GL11.glPopMatrix();
+        GlStateManager.resetColor();
+        StencilUtils.dispose();
+        GL11.glPopMatrix();
+        GL11.glPushMatrix();
+    }
+
+    public static void drawHead(EntityLivingBase entity, float x, float y, int width, int height, float radius, Color color) {
         GL11.glPushMatrix();
         GL11.glColor4f(1f, 1, 1, 1f);
         StencilUtils.write(false);
@@ -82,7 +156,7 @@ public class RoundedUtils {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         StencilUtils.erase(true);
         GL11.glPushMatrix();
-        drawHead(entity.getLocationSkin(), (int) x, (int) y, width, height, 1F);
+        drawHead(entity.getLocationSkin(), (int) x, (int) y, width, height, color);
         GL11.glPopMatrix();
         GlStateManager.resetColor();
         StencilUtils.dispose();
@@ -127,12 +201,26 @@ public class RoundedUtils {
     }
 
 
-    public static void drawHead(ResourceLocation skin, int x, int y, int width, int height, float alpha) {
+    public static void drawHead(ResourceLocation skin, int x, int y, int width, int height, Color color) {
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glDepthMask(false);
         OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, alpha);
+        GL11.glColor4f(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+        Minecraft.getMinecraft().getTextureManager().bindTexture(skin);
+        Gui.drawScaledCustomSizeModalRect(x, y, 8F, 8F, 8, 8, width, height, 64F, 64F);
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        GL11.glDepthMask(true);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+    }
+
+    public static void drawHead(ResourceLocation skin, int x, int y, int width, int height, float f) {
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glDepthMask(false);
+        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+        GL11.glColor4f(1f, 1f, 1f, f);
         Minecraft.getMinecraft().getTextureManager().bindTexture(skin);
         Gui.drawScaledCustomSizeModalRect(x, y, 8F, 8F, 8, 8, width, height, 64F, 64F);
         GL11.glDepthMask(true);
@@ -251,4 +339,25 @@ public class RoundedUtils {
     }
 
 
+    public static void drawImage(int x, int y, int width, int height, ResourceLocation image) {
+        GlStateManager.color(1, 1, 1, 1);
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        Minecraft.getMinecraft().getTextureManager().bindTexture(image);
+        Gui.drawModalRectWithCustomSizedTexture(x,y,0,0, width, height, width, height);
+        GlStateManager.disableBlend();
+    }
+
+    public static void drawStack(ItemStack itemStack, float x, float y) {
+        GlStateManager.pushMatrix();
+        GlStateManager.enableRescaleNormal();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        RenderHelper.enableGUIStandardItemLighting();
+        Minecraft.getMinecraft().getRenderItem().renderItemAndEffectIntoGUI(itemStack, (int) x, (int) y);
+        GlStateManager.disableRescaleNormal();
+        GlStateManager.disableBlend();
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.popMatrix();
+    }
 }

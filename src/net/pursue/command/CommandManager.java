@@ -1,8 +1,6 @@
 package net.pursue.command;
 
-import net.pursue.command.commands.Bind;
-import net.pursue.command.commands.Config;
-import net.pursue.command.commands.Toggle;
+import net.pursue.command.commands.*;
 import net.pursue.event.EventManager;
 import net.pursue.event.EventTarget;
 import net.pursue.event.world.EventChat;
@@ -18,9 +16,11 @@ public class CommandManager {
     private final List<Command> commands = new ArrayList<>();
 
     public void init() {
+        commands.add(new Binds());
         commands.add(new Bind());
         commands.add(new Toggle());
         commands.add(new Config());
+        commands.add(new AutoL());
         EventManager.instance.register(this);
     }
 
@@ -49,21 +49,13 @@ public class CommandManager {
             String commandName = args[0].toLowerCase();
             Command command = getCommandByName(commandName);
 
-
-            for (Command cmd : commands) {
-                if (args.length == 1 && !(args[0].equals(cmd.getName()) || args[0].equals("help"))) {
-                    List<String> suggestions = getCommandSuggestions(commandName);
-                    if (!suggestions.isEmpty()) {
-                        DebugHelper.sendMessage("可用指令: " + String.join("| ", suggestions));
-                        return;
-                    }
-                }
-            }
-
             if (command != null) {
                 command.execute(Arrays.copyOfRange(args, 1, args.length));
             } else {
-                DebugHelper.sendMessage("指令有误");
+                List<String> suggestions = getCommandSuggestions(commandName);
+                if (!suggestions.isEmpty()) {
+                    DebugHelper.sendMessage("可用指令: " + String.join(" | ", suggestions));
+                }
             }
         }
     }

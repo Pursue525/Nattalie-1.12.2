@@ -1,12 +1,5 @@
 package net.minecraft.client.multiplayer;
 
-import com.viaversion.viaversion.api.Via;
-import com.viaversion.viaversion.api.connection.UserConnection;
-import com.viaversion.viaversion.api.protocol.packet.PacketType;
-import com.viaversion.viaversion.api.protocol.packet.PacketWrapper;
-import com.viaversion.viaversion.api.type.Type;
-import com.viaversion.viaversion.protocols.v1_16_4to1_17.packet.ServerboundPackets1_17;
-import com.viaversion.viaversion.protocols.v1_8to1_9.packet.ServerboundPackets1_9;
 import io.netty.buffer.Unpooled;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCommandBlock;
@@ -28,24 +21,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.network.play.client.CPacketClickWindow;
-import net.minecraft.network.play.client.CPacketCreativeInventoryAction;
-import net.minecraft.network.play.client.CPacketCustomPayload;
-import net.minecraft.network.play.client.CPacketEnchantItem;
-import net.minecraft.network.play.client.CPacketHeldItemChange;
-import net.minecraft.network.play.client.CPacketPlaceRecipe;
-import net.minecraft.network.play.client.CPacketPlayerDigging;
-import net.minecraft.network.play.client.CPacketPlayerTryUseItem;
-import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock;
-import net.minecraft.network.play.client.CPacketUseEntity;
+import net.minecraft.network.play.client.*;
 import net.minecraft.potion.Potion;
 import net.minecraft.stats.RecipeBook;
 import net.minecraft.stats.StatisticsManager;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
@@ -542,7 +522,7 @@ public class PlayerControllerMP
      * Attacks an entity
      */
     public void attackEntity(EntityPlayer playerIn, Entity targetEntity) {
-        EventManager.instance.call(new EventAttack(targetEntity));
+        EventManager.instance.call(new EventAttack(targetEntity, EventAttack.Type.Pre));
 
         this.syncCurrentPlayItem();
         this.connection.sendPacket(new CPacketUseEntity(targetEntity));
@@ -557,6 +537,8 @@ public class PlayerControllerMP
             }
             playerIn.resetCooldown();
         }
+
+        EventManager.instance.call(new EventAttack(null, EventAttack.Type.Post));
     }
 
     /**

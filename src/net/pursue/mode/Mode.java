@@ -7,7 +7,7 @@ import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.init.SoundEvents;
 import net.pursue.Nattalie;
 import net.pursue.event.EventManager;
-import net.pursue.mode.exploit.ClickGUI;
+import net.pursue.mode.client.ClickGUI;
 import net.pursue.ui.notification.NotificationType;
 import net.pursue.utils.category.Category;
 import net.pursue.value.Value;
@@ -23,10 +23,13 @@ public class Mode {
     private final String modeChineseName;
     private final String modeDescribes;
     private final Category category;
-
     private boolean enable;
 
-    private final String suffix = null;
+    @Setter
+    private boolean valueset;
+
+    @Setter
+    private String suffix = null;
     @Setter
     private int key;
     private final List<Value<?>> values = new ArrayList<>();
@@ -45,24 +48,29 @@ public class Mode {
 
         if (enable) {
             enable();
-            mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
 
+            if (category != Category.CLIENT) {
+                mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
 
-            if (ClickGUI.instance.chinese.getValue()) {
-                Nattalie.instance.getNotificationManager().post("  开启模块  ", "[" + this.modeChineseName + "]", 2000, NotificationType.SUCCESS);
-            } else {
-                Nattalie.instance.getNotificationManager().post("EnableModule", "[" + this.modeName + "]", 2000, NotificationType.SUCCESS);
+                if (ClickGUI.instance.chinese.getValue()) {
+                    Nattalie.instance.getNotificationManager().post("  开启模块  ", "[" + this.modeChineseName + "]", 2000, NotificationType.SUCCESS);
+                } else {
+                    Nattalie.instance.getNotificationManager().post("EnableModule", "[" + this.modeName + "]", 2000, NotificationType.SUCCESS);
+                }
             }
 
             EventManager.instance.register(this);
         } else {
             disable();
-            mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
 
-            if (ClickGUI.instance.chinese.getValue()) {
-                Nattalie.instance.getNotificationManager().post("  关闭模块  ", "[" + this.modeChineseName + "]", 2000, NotificationType.ERROR);
-            } else {
-                Nattalie.instance.getNotificationManager().post("DisableModule", "[" + this.modeName + "]", 2000, NotificationType.ERROR);
+            if (category != Category.CLIENT) {
+                mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+
+                if (ClickGUI.instance.chinese.getValue()) {
+                    Nattalie.instance.getNotificationManager().post("  关闭模块  ", "[" + this.modeChineseName + "]", 2000, NotificationType.ERROR);
+                } else {
+                    Nattalie.instance.getNotificationManager().post("DisableModule", "[" + this.modeName + "]", 2000, NotificationType.ERROR);
+                }
             }
 
             EventManager.instance.unregister(this);

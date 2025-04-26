@@ -5,18 +5,14 @@ import com.google.gson.JsonObject;
 import net.pursue.Nattalie;
 import net.pursue.config.Config;
 import net.pursue.mode.Mode;
+import net.pursue.utils.HUDData;
+import net.pursue.utils.HUDManager;
+import net.pursue.utils.category.Category;
 import net.pursue.value.Value;
-import net.pursue.value.values.BooleanValue;
-import net.pursue.value.values.ColorValue;
-import net.pursue.value.values.ModeValue;
-import net.pursue.value.values.NumberValue;
+import net.pursue.value.values.*;
 
 import java.awt.*;
 
-/**
- * @author ChengFeng
- * @since 2023/3/19
- */
 public class ModuleConfig extends Config {
 
     public ModuleConfig() {
@@ -34,6 +30,15 @@ public class ModuleConfig extends Config {
             moduleObject.addProperty("state", module.isEnable());
             moduleObject.addProperty("key", module.getKey());
 
+            if (module.getCategory() == Category.HUD) {
+                for (HUDData hudData : HUDManager.data) {
+                    if (hudData.getTitle().equals(module.getModeName())) {
+                        moduleObject.addProperty("x", hudData.getX());
+                        moduleObject.addProperty("y", hudData.getY());
+                    }
+                }
+            }
+
             JsonObject valuesObject = new JsonObject();
 
             for (Value value : module.getValues()) {
@@ -50,6 +55,8 @@ public class ModuleConfig extends Config {
                     colorObject.addProperty("blue", ((ColorValue) value).getBlue());
                     colorObject.addProperty("alpha", ((ColorValue) value).getAlpha());
                     valuesObject.add(value.getName(), colorObject);
+                } else if (value instanceof StringValue) {
+                    valuesObject.addProperty(value.getName(), ((StringValue<?>) value).getValue());
                 }
             }
 
@@ -77,6 +84,16 @@ public class ModuleConfig extends Config {
                     module.setKey(moduleObject.get("key").getAsInt());
                 }
 
+                if (module.getCategory() == Category.HUD) {
+                    for (HUDData hudData : HUDManager.data) {
+                        if (hudData.getTitle().equals(module.getModeName())) {
+
+                            hudData.setX(moduleObject.get("x").getAsInt());
+                            hudData.setY(moduleObject.get("y").getAsInt());
+                        }
+                    }
+                }
+
                 if (moduleObject.has("values")) {
                     JsonObject valuesObject = moduleObject.get("values").getAsJsonObject();
 
@@ -86,8 +103,12 @@ public class ModuleConfig extends Config {
                             switch (value) {
                                 case NumberValue numberValue ->
                                         numberValue.setValue(theValue.getAsNumber().doubleValue());
-                                case BooleanValue booleanValue -> booleanValue.setValue(theValue.getAsBoolean());
-                                case ModeValue modeValue -> modeValue.setMode(theValue.getAsString());
+                                case BooleanValue booleanValue ->
+                                        booleanValue.setValue(theValue.getAsBoolean());
+                                case ModeValue modeValue ->
+                                        modeValue.setMode(theValue.getAsString());
+                                case StringValue stringValue ->
+                                        stringValue.setValue(theValue.getAsString());
                                 case ColorValue colorValue -> {
                                     if (theValue.isJsonObject()) {
                                         JsonObject colorObject = theValue.getAsJsonObject();

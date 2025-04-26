@@ -22,7 +22,7 @@ public class GuiTextField extends Gui
     private final int height;
 
     /** Has the current text being edited on the textbox. */
-    private String text = "";
+    public String text = "";
     private int maxStringLength = 32;
     protected int cursorCounter;
     protected boolean enableBackgroundDrawing = true;

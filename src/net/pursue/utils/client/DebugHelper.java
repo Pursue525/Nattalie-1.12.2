@@ -144,6 +144,21 @@ public class DebugHelper {
                 sendMessage("TeleportId", posLook.getTeleportId());
             }
 
+            case SPacketCustomSound customSound -> {
+                sendMessage("SoundName" , customSound.getSoundName());
+                sendMessage("X" , customSound.getX());
+                sendMessage("Y" , customSound.getY());
+                sendMessage("Z" , customSound.getZ());
+                sendMessage("Pitch", customSound.getPitch());
+            }
+            case SPacketSoundEffect customSound -> {
+                sendMessage("SoundName" , customSound.getSound().getSoundName());
+                sendMessage("X" , customSound.getX());
+                sendMessage("Y" , customSound.getY());
+                sendMessage("Z" , customSound.getZ());
+                sendMessage("Pitch", customSound.getPitch());
+            }
+
             case SPacketChat chat -> {
                 sendMessage("Type", chat.getType());
                 sendMessage("ChatComponent", chat.getChatComponent());
@@ -182,12 +197,27 @@ public class DebugHelper {
                 sendMessage("ItemStacks", String.join(", ", itemNames));
             }
 
+            case SPacketOpenWindow window -> {
+                sendMessage("WindowID", window.getWindowId());
+                sendMessage("GuiID", window.getGuiId());
+                sendMessage("GuiName", window.getWindowTitle().getFormattedText());
+            }
+            case SPacketConfirmTransaction transaction -> {
+                sendMessage("WindowsID", transaction.getWindowId());
+                sendMessage("ActionNumber", transaction.getActionNumber());
+                sendMessage("Accepted", transaction.wasAccepted());
+            }
+
             default -> sendMessage("错误", "该数据包的参数暂时不支持查看");
 
         }
     }
 
     public static void sendMessage(Object chatPrefix, Object message) {
+        if (Minecraft.getMinecraft().player == null) {
+            System.out.println(chatPrefix + " || " + message);
+            return;
+        }
 
         String string = "\2477[" + TextFormatting.AQUA + TextFormatting.BOLD + chatPrefix + TextFormatting.RESET + "\2477] " + TextFormatting.RESET;
         Minecraft.getMinecraft().player.addChatMessage(new TextComponentString(string + message));

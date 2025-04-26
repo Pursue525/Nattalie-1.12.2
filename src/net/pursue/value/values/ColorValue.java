@@ -80,8 +80,21 @@ public class ColorValue<T extends Color> extends Value<T> {
         b = color.getBlue();
         a = color.getAlpha();
     }
+    public void setColorRed(int color) {
+        this.setValue((T) new Color(color, g, b, a));
+        r = color;
+    }
+    public void setColorGreen(int color) {
+        this.setValue((T) new Color(r, color, b, a));
+        g = color;
+    }
+    public void setColorBlue(int color) {
+        this.setValue((T) new Color(r, g, color, a));
+        b = color;
+    }
+
     public void setColoAr(int color) {
+        this.setValue((T) new Color(r, g, b, color));
         this.a = color;
-        this.setValue((T) new Color(r, g, b, a));
     }
 }

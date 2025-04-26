@@ -6,19 +6,28 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.pursue.event.EventTarget;
 import net.pursue.event.render.EventRender2D;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
+import net.pursue.ui.font.FontManager;
 import net.pursue.utils.HUDData;
 import net.pursue.utils.HUDManager;
+import net.pursue.utils.MathUtils;
+import net.pursue.utils.category.Category;
 import net.pursue.utils.render.RoundedUtils;
+import net.pursue.value.values.BooleanValue;
+import net.pursue.value.values.NumberValue;
 
 import java.awt.*;
 
 public class Armor extends Mode {
 
+    private final BooleanValue<Boolean> blur = new BooleanValue<>(this, "Blur", true);
+    private final NumberValue<Number> blurInt = new NumberValue<>(this,"BlurInt", 10, 1, 100, 1, blur::getValue);
+
     public Armor() {
         super("Armor", "盔甲显示", "显示出你身上的盔甲", Category.HUD);
     }
+
+    private float w;
 
     @EventTarget
     private void onRender2D(EventRender2D eventRender2D) {
@@ -32,35 +41,30 @@ public class Armor extends Mode {
             }
         }
 
+        FontManager.font16.drawString(this.getName(), x + 2, y + 2, Color.WHITE.getRGB());
 
-        RoundedUtils.drawRound(x, y + 1, 70, 14, 2, new Color(0, 0, 0, 80));
+        if (blur.getValue()) {
+            RoundedUtils.drawRoundBlur(x, y, 80, FontManager.font16.getHeight() + 16, 2, new Color(0, 0, 0, 80), blurInt.getValue().intValue());
+        } else {
+            RoundedUtils.drawRound(x, y, 80, FontManager.font16.getHeight() + 16, 2, new Color(0, 0, 0, 80));
+        }
 
-        drawPlayerEquipment(getPlayerEquipment(mc.player), x, y, true);
+        FontManager.font16.drawString(this.getName(), x + 2, y + 2, Color.WHITE.getRGB());
+
+        w = drawPlayerEquipment(getPlayerEquipment(mc.player), x + MathUtils.centre(80, w), y + FontManager.font16.getHeight() - 2, true);
 
         if (!HUDManager.data.isEmpty()) for (HUDData data : HUDManager.data) {
             if (data.getTitle().equals(this.getModeName())) {
                 data.setX(x);
                 data.setY(y);
-                data.setWidth(70);
+                data.setWidth(80);
                 data.setHeight(15);
             }
         }
     }
 
     public static ItemStack[] getPlayerEquipment(EntityPlayer entity) {
-        ItemStack[] equipment = new ItemStack[4];
-
-        for (int i = 0; i < 4; i++) {
-            ItemStack stack = entity.inventory.armorInventory.get(i);
-
-            if (!stack.func_190926_b()) {
-                equipment[i] = stack;
-            } else {
-                equipment[i] = null;
-            }
-        }
-
-        return equipment;
+        return new ItemStack[]{entity.inventory.armorInventory.get(3), entity.inventory.armorInventory.get(2), entity.inventory.armorInventory.get(1), entity.inventory.armorInventory.get(0)};
     }
 
     public static float drawPlayerEquipment(ItemStack[] equipment, float x, float y, boolean transverse) {

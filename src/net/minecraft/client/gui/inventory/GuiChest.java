@@ -96,15 +96,17 @@ public class GuiChest extends GuiContainer
             GL11.glPushMatrix();
             GL11.glTranslated(pos.x - width / 2, startY + 20F, 0);
             RenderHelper.enableGUIStandardItemLighting();
-            renderInv(0, 8, 6, -12, chest);
-            renderInv(9, 17, 6, 6, chest);
-            renderInv(18, 26, 6, 24, chest);
+            renderInv(0, 8, 6, -12, chest, chest);
+            renderInv(9, 17, 6, 6, chest, chest);
+            renderInv(18, 26, 6, 24, chest, chest);
+
             RenderHelper.disableStandardItemLighting();
             GlStateManager.enableAlpha();
             GlStateManager.disableBlend();
             GlStateManager.disableLighting();
             GlStateManager.disableCull();
             GL11.glPopMatrix();
+
 
             return;
         }
@@ -114,15 +116,21 @@ public class GuiChest extends GuiContainer
         this.func_191948_b(mouseX, mouseY);
     }
 
-    private void renderInv(int slot, int endSlot, int x, int y, Container container) {
+    private boolean renderInv(int slot, int endSlot, int x, int y, Container container, ContainerChest chest) {
         int xOffset = x;
+
+        boolean isE = true;
+
         for (int i = slot; i <= endSlot; i++) {
             xOffset += 18;
             if (container.getSlot(i).getStack() != null) {
                 mc.getRenderItem().renderItemAndEffectIntoGUI(container.getSlot(i).getStack(), xOffset - 18, y);
                 mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, container.getSlot(i).getStack(), xOffset - 18, y);
             }
+
+            if (!chest.getLowerChestInventory().getStackInSlot(i).func_190926_b()) isE = false;
         }
+        return isE;
     }
 
     /**

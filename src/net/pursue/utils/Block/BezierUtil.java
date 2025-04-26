@@ -48,12 +48,6 @@ public class BezierUtil {
     private static float ease(float t) {
         t = 1 - t;
 
-//        double p0 = 0.25;
-//        double p1 = 0.1;
-//        double p2 = 0.25;
-//        double p3 = 1.0;
-//        double p3 = 0.9;
-
         float p0 = 0F;
         float p1 = 0.01F;
         float p2 = 0F;

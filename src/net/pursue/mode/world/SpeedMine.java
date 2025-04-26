@@ -8,8 +8,8 @@ import net.minecraft.util.math.BlockPos;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
 import net.pursue.event.update.EventUpdate;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
+import net.pursue.utils.category.Category;
 import net.pursue.utils.player.PacketUtils;
 import net.pursue.value.values.NumberValue;
 
@@ -23,6 +23,13 @@ public class SpeedMine extends Mode {
     public SpeedMine() {
         super("SpeedMine", "快速挖掘", "加速你的挖掘", Category.WORLD);
     }
+    @Override
+    public void enable() {
+        pos = null;
+        damage = 0f;
+        facing = null;
+        boost = false;
+    }
 
 
     @EventTarget
@@ -34,9 +41,9 @@ public class SpeedMine extends Mode {
                 boost = true;
                 damage = 0f;
                 PacketUtils.sendPacketNoEvent(new CPacketPlayerDigging(CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK, pos, facing));
-            }
-            if (digging.getAction() == CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK) {
+            } else if (digging.getAction() == CPacketPlayerDigging.Action.STOP_DESTROY_BLOCK) {
                 pos = null;
+                damage = 0f;
                 facing = null;
                 boost = false;
             }

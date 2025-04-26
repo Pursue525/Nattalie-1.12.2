@@ -4,19 +4,15 @@ import lombok.Getter;
 
 @Getter
 public enum NotificationType {
-    SUCCESS("Success", "a", 0),
-    INFO("Info", "C", 1),
-    WARNING("Warning", "D", 2),
-    ERROR("Error", "B", 3);
+    SUCCESS("a"),
+    INFO("C"),
+    WARNING("D"),
+    ERROR("B");
 
-    private final String name;
     private final String icon;
-    private final int type;
 
-    NotificationType(String name, String icon, int type) {
-        this.name = name;
+    NotificationType(String icon) {
         this.icon = icon;
-        this.type = type;
     }
 
 }

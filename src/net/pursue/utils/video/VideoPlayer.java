@@ -31,6 +31,8 @@ public class VideoPlayer {
     private int frameLength;
     public int count; // frames counter
 
+    public String name;
+
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> scheduledFuture;
 
@@ -43,7 +45,7 @@ public class VideoPlayer {
      *
      * @param videoFile your video file object
      */
-    public void init(File videoFile) throws FFmpegFrameGrabber.Exception {
+    public void init(File videoFile, String videoName) throws FFmpegFrameGrabber.Exception {
         frameGrabber = FFmpegFrameGrabber.createDefault(videoFile);
         frameGrabber.setPixelFormat(avutil.AV_PIX_FMT_RGB24);
         avutil.av_log_set_level(avutil.AV_LOG_QUIET); // Log level -> quiet
@@ -51,6 +53,7 @@ public class VideoPlayer {
         textureBinder = new TextureBinder();
 
         count = 0;
+        name = videoName;
 
         stopped.set(false);
         frameGrabber.start();
@@ -64,6 +67,7 @@ public class VideoPlayer {
 
     private void doGetBuffer() {
         if (stopped.get()) return;
+
 
         try {
             if (count < frameLength - 1) {

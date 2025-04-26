@@ -12,8 +12,11 @@ import net.pursue.event.Event;
 @Getter
 public class EventAttack extends Event {
     private final Entity target;
-    public EventAttack(Entity target) {
+    private final Type type;
+
+    public EventAttack(Entity target, Type type) {
         this.target = target;
+        this.type = type;
     }
 
     public enum Type {

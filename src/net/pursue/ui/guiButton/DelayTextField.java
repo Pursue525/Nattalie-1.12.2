@@ -6,14 +6,10 @@ import net.minecraft.client.gui.GuiTextField;
 import net.pursue.utils.TimerUtils;
 import net.pursue.utils.render.RoundedUtils;
 
-import javax.swing.*;
 import java.awt.*;
 
 public class DelayTextField extends GuiTextField {
     private final FontRenderer fontRendererInstance;
-    public int xPosition;
-    public int yPosition;
-
     private final int width;
     private final int height;
 
@@ -23,8 +19,8 @@ public class DelayTextField extends GuiTextField {
     private final TimerUtils timer = new TimerUtils();
 
     private boolean delays;
-
-    private boolean fix;
+    private Color color;
+    private final boolean fix;
 
     public DelayTextField(int componentId, FontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height, int delay, boolean fix)
     {
@@ -37,6 +33,22 @@ public class DelayTextField extends GuiTextField {
         this.delay = delay;
         this.id = componentId;
         this.fix = fix;
+        delays = false;
+    }
+
+    public DelayTextField(int componentId, String string, FontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height, int delay, Color color, boolean fix)
+    {
+        super(componentId, fontrendererObj, x, y, par5Width, par6Height);
+        setText(string);
+        this.fontRendererInstance = fontrendererObj;
+        this.xPosition = x;
+        this.yPosition = y;
+        this.width = par5Width;
+        this.height = par6Height;
+        this.delay = delay;
+        this.id = componentId;
+        this.fix = fix;
+        this.color = color;
         delays = false;
     }
 
@@ -55,6 +67,9 @@ public class DelayTextField extends GuiTextField {
         if (timer.hasTimePassed(delay)) {
             if (this.getVisible())
             {
+                if (color != null) {
+                    RoundedUtils.drawRound(this.xPosition, this.yPosition + 6, this.width, this.height - 9, 0, color);
+                }
                 RoundedUtils.drawRound(this.xPosition, this.yPosition + this.height - 3, this.width, 1,0, new Color(255,255,255));
 
                 int i = this.isEnabled ? this.enabledColor : this.disabledColor;

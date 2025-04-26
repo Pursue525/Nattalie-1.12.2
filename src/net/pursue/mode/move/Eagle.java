@@ -10,7 +10,7 @@ import net.pursue.utils.category.Category;
 
 public class Eagle extends Mode {
     public Eagle() {
-        super("Eagle", "自动蹲", "自动在方块边缘蹲下", Category.MOVE);
+        super("Eagle", "蹲起", "自动在方块边缘蹲下", Category.MOVE);
     }
 
     @Override

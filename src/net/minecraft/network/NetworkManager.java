@@ -35,6 +35,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.pursue.event.Event;
 import net.pursue.event.EventManager;
 import net.pursue.event.packet.EventPacket;
+import net.pursue.event.packet.EventPacketHigh;
 import net.pursue.mode.misc.Disabler;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.Validate;
@@ -188,6 +189,13 @@ public class NetworkManager extends SimpleChannelInboundHandler < Packet<? >>
     }
 
     public void sendPacket(Packet<?> packetIn) {
+
+        EventPacketHigh packetSent = new EventPacketHigh(packetIn);
+        EventManager.instance.call(packetSent);
+
+        if (packetSent.isCancelled()) {
+            return;
+        }
 
         if (this.isChannelOpen())
         {

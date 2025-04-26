@@ -2,23 +2,17 @@ package net.pursue.mode.player;
 
 import net.minecraft.block.BlockGlass;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.init.Blocks;
 import net.minecraft.network.play.client.CPacketPlayerDigging;
 import net.minecraft.network.play.server.SPacketChat;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.pursue.Nattalie;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
 import net.pursue.event.update.EventTick;
 import net.pursue.event.update.EventUpdate;
-import net.pursue.event.world.EventWorldLoad;
 import net.pursue.mode.Mode;
 import net.pursue.utils.category.Category;
-import net.pursue.utils.client.DebugHelper;
-import net.pursue.utils.player.PacketUtils;
 import net.pursue.value.values.ModeValue;
-import org.lwjgl.input.Keyboard;
 
 public class AutoCage extends Mode {
 
@@ -37,6 +31,12 @@ public class AutoCage extends Mode {
     private boolean timer;
 
     @Override
+    public void enable() {
+        i = 0;
+        timer = false;
+    }
+
+    @Override
     public void disable() {
         Blink.instance.setEnable(false);
     }
@@ -46,22 +46,12 @@ public class AutoCage extends Mode {
         if (mc.world.getBlockState(mc.player.getPos(1)).getBlock() instanceof BlockGlass) {
             switch (modeValue.getValue()) {
                 case HuaYuTing -> {
-                    if (Blink.instance.modeValue.getValue().equals(Blink.mode.Normal)) {
-                        Blink.instance.setEnable(true);
-                    } else {
-                        setEnable(false);
-                        DebugHelper.sendMessage("Blink模式为Slow，无法为您出笼子！");
-                    }
+                    if (!Blink.instance.isEnable()) Blink.instance.setEnable(true);
 
                     setBlockAir(mc.player.getPos(1));
                 }
                 case Heyixel -> {
-                    if (Blink.instance.modeValue.getValue().equals(Blink.mode.Normal)) {
-                        Blink.instance.setEnable(true);
-                    } else {
-                        setEnable(false);
-                        DebugHelper.sendMessage("Blink模式为Slow，无法为您出笼子！");
-                    }
+                    if (!Blink.instance.isEnable()) Blink.instance.setEnable(true);
 
                     KeyBinding[] keyBindings = {mc.gameSettings.keyBindForward, mc.gameSettings.keyBindBack, mc.gameSettings.keyBindLeft, mc.gameSettings.keyBindRight, mc.gameSettings.keyBindJump, mc.gameSettings.keyBindSprint};
 

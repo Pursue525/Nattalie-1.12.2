@@ -22,10 +22,13 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.optifine.entity.model.IEntityRenderer;
 import net.pursue.mode.misc.Teams;
+import net.pursue.mode.player.Blink;
+import net.pursue.mode.render.ItemDeBug;
 import net.pursue.mode.render.NameTag;
 import net.pursue.ui.font.FontManager;
-import net.pursue.ui.font.RapeMasterFontManager;
+import net.pursue.ui.font.FontUtils;
 import net.pursue.utils.friend.FriendManager;
+import net.pursue.utils.player.PlayerData;
 import net.pursue.utils.render.RoundedUtils;
 import optifine.Config;
 import org.lwjgl.opengl.GL11;
@@ -401,10 +404,18 @@ public abstract class Render<T extends Entity> implements IEntityRenderer
             int i = "deadmau5".equals(str) ? -10 : 0;
 
 
-            if (NameTag.instance.isEnable() && entityIn instanceof EntityPlayer) {
-                str = TextFormatting.WHITE + "[" + TextFormatting.RED + "坏人" + TextFormatting.WHITE + "]";
+            if (NameTag.instance.isEnable() && entityIn instanceof EntityPlayer && entityIn != Blink.fakePlayer) {
+                str = TextFormatting.WHITE + "[" + TextFormatting.RED + "Hostile" + TextFormatting.WHITE + "]";
                 if (Teams.instance.isTeam((EntityLivingBase) entityIn) || FriendManager.isFriend(entityIn.getName())) {
-                    str = TextFormatting.WHITE + "[" + TextFormatting.GREEN + "好人" + TextFormatting.WHITE + "]";
+                    str = TextFormatting.WHITE + "[" + TextFormatting.GREEN + "Friend" + TextFormatting.WHITE + "]";
+                }
+
+                if (!ItemDeBug.pList.isEmpty()) {
+                    for (PlayerData data : ItemDeBug.pList) {
+                        if (data.base().getName().equals(entityIn.getName())) {
+                            str = TextFormatting.WHITE + "[" + TextFormatting.GREEN + data.tag() + TextFormatting.WHITE + "]";
+                        }
+                    }
                 }
 
                 if (NameTag.instance.modeValue.getValue().equals(NameTag.mode.Normal)) {
@@ -420,33 +431,22 @@ public abstract class Render<T extends Entity> implements IEntityRenderer
     public void drawNameplate(Entity entityIn, String str, float x, float y, float z, int verticalShift, float viewerYaw, float viewerPitch, boolean isThirdPersonFrontal)
     {
 
-        RapeMasterFontManager fontManager = FontManager.font24;
+        FontUtils fontManager = FontManager.font24;
         String name = entityIn.getName() + " " + str;
-
-        double d0 = entityIn.getDistanceSqToEntity(renderManager.livingPlayer);
-
-        final float f = (float) (d0 / 4.3 / 10);
-        float f2 = 0.016666668f * f;
-
-        if (f2 > 0.0889f) {
-            f2 = 0.0889f;
-        } else if (f2 < 0.029f) {
-            f2 = 0.029f;
-        }
 
         GlStateManager.pushMatrix();
         GlStateManager.translate(x, y, z);
         GlStateManager.glNormal3f(0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(-viewerYaw, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate((float)(isThirdPersonFrontal ? -1 : 1) * viewerPitch, 1.0F, 0.0F, 0.0F);
-        GlStateManager.scale(-f2, -f2, f2);
+        GlStateManager.scale(-0.03f, -0.03f, 0.03f);
         GlStateManager.disableLighting();
         GlStateManager.depthMask(false);
 
         GlStateManager.disableDepth();
 
         GlStateManager.enableBlend();
-        RoundedUtils.drawRound_Rectangle(fontManager, name, -fontManager.getStringWidth(name) / 2f, verticalShift - 10, 0, NameTag.instance.stringColor.getColor(), NameTag.instance.backGroundColor.getColor(), NameTag.instance.backGroundColor2.getColor(), 10, 6, true);
+        RoundedUtils.drawRound_Rectangle(fontManager, name, -fontManager.getStringWidth(name) / 2f, verticalShift - 10 + 0.03f, 0, NameTag.instance.stringColor.getColor(), NameTag.instance.backGroundColor.getColor(), NameTag.instance.backGroundColor2.getColor(), 10, 6, true);
         GlStateManager.enableDepth();
 
         GlStateManager.depthMask(true);
@@ -456,24 +456,15 @@ public abstract class Render<T extends Entity> implements IEntityRenderer
         GlStateManager.popMatrix();
     }
 
-    protected void renderArmor(final T entityIn, final double x, final double y, final double z, final int maxDistance) {
+    protected void renderArmor(final T entityIn, final double x,double y, final double z, final int maxDistance) {
         final double d0 = entityIn.getDistanceSqToEntity(renderManager.livingPlayer);
         if (d0 <= maxDistance * maxDistance) {
-            final float f = (float) (d0 / 4.3 / 10);
-            float f2 = 0.016666668f * f;
-
-            if (f2 > 0.0889f) {
-                f2 = 0.0889f;
-            } else if (f2 < 0.029f) {
-                f2 = 0.029f;
-            }
-
             GlStateManager.pushMatrix();
             GlStateManager.translate((float)x, (float)y + 0.7f, (float)z);
             GL11.glNormal3f(0.0f, 1.0f, 0.0f);
             GlStateManager.rotate(-renderManager.playerViewY, 0.0f, 1.0f, 0.0f);
             GlStateManager.rotate(renderManager.playerViewX, 1.0f, 0.0f, 0.0f);
-            GlStateManager.scale(-f2, -f2, f2);
+            GlStateManager.scale(-0.03f, -0.03f, 0.03f);
             GlStateManager.disableLighting();
             GlStateManager.depthMask(false);
             GlStateManager.disableDepth();

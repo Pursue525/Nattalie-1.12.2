@@ -7,9 +7,10 @@ import net.minecraft.network.play.server.SPacketChat;
 import net.minecraft.network.play.server.SPacketEntity;
 import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
+import net.pursue.event.update.EventUpdate;
 import net.pursue.event.world.EventWorldLoad;
-import net.pursue.utils.category.Category;
 import net.pursue.mode.Mode;
+import net.pursue.utils.category.Category;
 import net.pursue.value.values.BooleanValue;
 import net.pursue.value.values.ModeValue;
 
@@ -56,6 +57,11 @@ public class AntiBot
 
     private void clearAll() {
         playerName.clear();
+    }
+
+    @EventTarget
+    public void onUpdate(EventUpdate eventUpdate) {
+        setSuffix(hytGetNameModes.getValue().name());
     }
 
     @EventTarget

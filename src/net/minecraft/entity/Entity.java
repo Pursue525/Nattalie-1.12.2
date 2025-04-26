@@ -1441,8 +1441,7 @@ public abstract class Entity implements ICommandSender
     /**
      * Checks if the current block the entity is within of the specified material type
      */
-    public boolean isInsideOfMaterial(Material materialIn)
-    {
+    public boolean isInsideOfMaterial(Material materialIn) {
         if (this.getRidingEntity() instanceof EntityBoat)
         {
             return false;
@@ -1453,15 +1452,12 @@ public abstract class Entity implements ICommandSender
             BlockPos blockpos = new BlockPos(this.posX, d0, this.posZ);
             IBlockState iblockstate = this.world.getBlockState(blockpos);
 
-            if (iblockstate.getMaterial() == materialIn)
-            {
+            if (iblockstate.getMaterial() == materialIn) {
                 float f = BlockLiquid.getLiquidHeightPercent(iblockstate.getBlock().getMetaFromState(iblockstate)) - 0.11111111F;
                 float f1 = (float)(blockpos.getY() + 1) - f;
                 boolean flag = d0 < (double)f1;
                 return !flag && this instanceof EntityPlayer ? false : flag;
-            }
-            else
-            {
+            } else {
                 return false;
             }
         }
@@ -1587,8 +1583,10 @@ public abstract class Entity implements ICommandSender
                 p_191958_1_ = p_191958_1_ * f;
                 p_191958_2_ = p_191958_2_ * f;
                 p_191958_3_ = p_191958_3_ * f;
+
                 float f1 = MathHelper.sin(this.rotationYaw * 0.017453292F);
                 float f2 = MathHelper.cos(this.rotationYaw * 0.017453292F);
+
                 this.motionX += (double) (p_191958_1_ * f2 - p_191958_3_ * f1);
                 this.motionY += (double) p_191958_2_;
                 this.motionZ += (double) (p_191958_3_ * f2 + p_191958_1_ * f1);
@@ -1754,6 +1752,14 @@ public abstract class Entity implements ICommandSender
         double d0 = this.posX - pos.posX;
         double d1 = this.posY - pos.posY;
         double d2 = this.posZ - pos.posZ;
+        return (double)MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+    }
+
+    public double getDistance(Vec3d pos)
+    {
+        double d0 = this.posX - pos.xCoord;
+        double d1 = this.posY - pos.yCoord;
+        double d2 = this.posZ - pos.zCoord;
         return (double)MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
     }
 
