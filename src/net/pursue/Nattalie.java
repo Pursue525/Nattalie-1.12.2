@@ -26,7 +26,7 @@ public class Nattalie {
     public static Nattalie instance;
 
     private final String clientName = "Nattalie";
-    private final String clientVersion = "v1.7";
+    private final String clientVersion = "v1.8";
 
 
     private final String CONFIG_FILE = "user_config1.12.2.properties";
@@ -34,6 +34,7 @@ public class Nattalie {
     public static String KEY;
 
     public static boolean blur = true;
+    public static boolean hwid = false; // 验证.
 
     private final ModeManager modeManager = new ModeManager();
     private final CommandManager commandManager = new CommandManager();

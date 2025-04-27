@@ -189,7 +189,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
     public int displayHeight;
 
     /** HWID */
-    public String hwid;
+    public String hwid = "null";
 
     /** True if the player is connected to a realms server */
     private boolean connectedToRealms;
@@ -603,15 +603,21 @@ public class Minecraft implements IThreadListener, ISnooperInfo
 
         this.renderGlobal.makeEntityOutlineShader();
 
-        if (HWIDManager.checkKeyWithRemote(hwid)) {
+
+        if (Nattalie.hwid) {
+            if (!HWIDManager.checkKeyWithRemote(hwid)) {
+                System.out.println("验证并未通过！");
+                System.out.println("YOU HWID-> " + hwid);
+                StringSelection selection = new StringSelection(hwid);
+                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+                DebugHelper.displayTray("HWID验证", "错误，您的HWID并未通过，已为您复制好了", TrayIcon.MessageType.INFO);
+                System.exit(-13);
+            }
+
             this.displayGuiScreen(new Setting());
         } else {
-            System.out.println("验证并未通过！");
-            System.out.println("YOU HWID-> " + hwid);
-            StringSelection selection = new StringSelection(hwid);
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-            DebugHelper.displayTray("HWID验证", "错误，您的HWID并未通过，已为您复制好了", TrayIcon.MessageType.INFO);
-            System.exit(-13);
+
+            this.displayGuiScreen(new Setting());
         }
     }
 

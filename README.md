@@ -26,34 +26,5 @@ Dev: 193923709
 验证我并不移除，您可以手动移除或者改为您的验证库，我并不反对，毕竟客户端免费
 
 如果您无能到连移除验证都不会，那么请看以下教程: 
-- 1.找到net/minecraft/client目录内的 Minecraft.java 中的 startGame 的调用
-- 2.并找到以下内容: 
-- if (HWIDManager.checkKeyWithRemote(hwid)) {
-  this.displayGuiScreen(new Setting());
-  } else {
-  System.out.println("验证并未通过！");
-  System.out.println("YOU HWID-> " + hwid);
-  StringSelection selection = new StringSelection(hwid);
-  Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-  DebugHelper.displayTray("HWID验证", "错误，您的HWID并未通过，已为您复制好了", TrayIcon.MessageType.INFO);
-  System.exit(-13);
-  }
-- 3.将它们删除后添加: 
-- this.displayGuiScreen(new Setting());
-- 4.跳转至Setting.java后
-- 5.将 actionPerformed 这个调用内的 mc.displayGuiScreen(new Disclaimer()); 都修改为: 
-- if (Minecraft.getMinecraft().serverName != null) {
-  Minecraft.getMinecraft().displayGuiScreen(new GuiConnecting(new MainMenu(), Minecraft.getMinecraft(), Minecraft.getMinecraft().serverName, Minecraft.getMinecraft().serverPort));
-  } else {
-  Minecraft.getMinecraft().displayGuiScreen(new MainMenu());
-  }
-
-Setting的作用仅为设置您的客户端是否用模糊，如果您不想看到这个可以直接在步骤3时改为:
-
-if (Minecraft.getMinecraft().serverName != null) {
-Minecraft.getMinecraft().displayGuiScreen(new GuiConnecting(new MainMenu(), Minecraft.getMinecraft(), Minecraft.getMinecraft().serverName, Minecraft.getMinecraft().serverPort));
-} else {
-Minecraft.getMinecraft().displayGuiScreen(new MainMenu());
-}
-
-即可.
+- 1.找到net/pursue目录内的 Nattalie.java
+- 2.找到hwid这个布尔值，将他设置为false
