@@ -462,13 +462,6 @@ public class Minecraft implements IThreadListener, ISnooperInfo
     {
         Nattalie.instance = new Nattalie();
 
-        if (!HWIDManager.isNewClient()) {
-            HWIDManager.openWebsite("https://www.123684.com/s/TBusjv-CZq3d");
-            DebugHelper.displayTray("版本验证", "错误，您的版本是旧版本，已为您跳转网址", TrayIcon.MessageType.INFO);
-            System.exit(-11);
-        }
-
-
         this.gameSettings = new GameSettings(this, this.mcDataDir);
         this.field_191950_u = new CreativeSettings(this, this.mcDataDir);
         this.defaultResourcePacks.add(this.mcDefaultResourcePack);
@@ -611,7 +604,7 @@ public class Minecraft implements IThreadListener, ISnooperInfo
                 StringSelection selection = new StringSelection(hwid);
                 Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
                 DebugHelper.displayTray("HWID验证", "错误，您的HWID并未通过，已为您复制好了", TrayIcon.MessageType.INFO);
-                System.exit(-13);
+                System.exit(-1);
             }
 
             this.displayGuiScreen(new Setting());
