@@ -21,6 +21,7 @@ import net.pursue.event.EventTarget;
 import net.pursue.event.packet.EventPacket;
 import net.pursue.event.update.EventUpdate;
 import net.pursue.mode.Mode;
+import net.pursue.mode.combat.KillAura;
 import net.pursue.utils.Block.BezierUtil;
 import net.pursue.utils.TimerUtils;
 import net.pursue.utils.category.Category;
@@ -55,6 +56,22 @@ public class Stealer extends Mode {
 
     @EventTarget
     private void onUpdate(EventUpdate eventUpdate) {
+
+        if (KillAura.INSTANCE.target != null) {
+            stopSrealer();
+            return;
+        }
+
+        if (Scaffold.INSTANCE.isScaffold) {
+            stopSrealer();
+            return;
+        }
+
+        if (Blink.instance.isEnable()) {
+            stopSrealer();
+            return;
+        }
+
         if (mc.currentScreen != null) {
             if (mc.player.openContainer instanceof ContainerFurnace container) {
                 if (isInventoryFull() || isFurnaceEmpty(container)) {

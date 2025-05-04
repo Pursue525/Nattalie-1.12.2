@@ -18,7 +18,6 @@ import net.pursue.event.update.EventTick;
 import net.pursue.event.update.EventUpdate;
 import net.pursue.event.world.EventWorldLoad;
 import net.pursue.mode.Mode;
-import net.pursue.mode.combat.KillAura;
 import net.pursue.shield.IsShield;
 import net.pursue.utils.TimerUtils;
 import net.pursue.utils.category.Category;
@@ -148,19 +147,17 @@ public class AutoHeal extends Mode {
                 tick = 0;
                 mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem));
             } else {
-                if (KillAura.INSTANCE.isEnable() && KillAura.INSTANCE.target != null) {
-                    if (mc.player.ticksExisted % ticks.getValue().intValue() == 0) {
-                        while (!packets.isEmpty()) {
-                            Packet<?> packet = packets.poll();
+                if (mc.player.ticksExisted % ticks.getValue().intValue() == 0) {
+                    while (!packets.isEmpty()) {
+                        Packet<?> packet = packets.poll();
 
-                            if (packet instanceof CPacketChatMessage) break;
+                        if (packet instanceof CPacketChatMessage) break;
 
-                            if (packet instanceof CPacketPlayer) {
-                                tick--;
-                            }
-
-                            PacketUtils.sendPacketNoEvent(packet);
+                        if (packet instanceof CPacketPlayer) {
+                            tick--;
                         }
+
+                        PacketUtils.sendPacketNoEvent(packet);
                     }
                 }
             }

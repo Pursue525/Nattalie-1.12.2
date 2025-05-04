@@ -60,6 +60,8 @@ public class ContainerAura extends Mode {
             return;
         }
 
+        if (Blink.instance.isEnable()) return;
+
         if (AutoHeal.instance.isEnable() && AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple)) {
             return;
         }

@@ -131,7 +131,7 @@ public class Velocity extends Mode {
 
                     EntityLivingBase entityLivingBase = KillAura.INSTANCE.target != null && KillAura.INSTANCE.isEnable() && !Scaffold.INSTANCE.isEnable() ? KillAura.INSTANCE.target : rayTraceResult != null ? (EntityLivingBase) rayTraceResult.entityHit : null;
 
-                    entityLivingBase = entityLivingBase != null && mc.player.getDistance(entityLivingBase) <= 3.35 ? entityLivingBase : null;
+                    entityLivingBase = entityLivingBase != null && mc.player.getDistance(entityLivingBase) <= 3.2 ? entityLivingBase : null;
 
                     if (entityLivingBase != null && !Scaffold.INSTANCE.isScaffold) {
 

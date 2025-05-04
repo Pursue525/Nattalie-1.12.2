@@ -61,31 +61,34 @@ public class AutoProjectile extends Mode {
         if (!KillAura.INSTANCE.getTargets().isEmpty() || SilentRotation.getTargetRotation() != null || Scaffold.INSTANCE.isEnable() || Blink.instance.isEnable() || AutoHeal.instance.isEnable() && AutoHeal.instance.modeValue.getValue().equals(AutoHeal.mode.Golden_Apple) || mc.player.getHeldItem(EnumHand.MAIN_HAND).getItem() instanceof ItemAppleGold
         ) {
             isRunning = false;
-        } else {
-            if (delay.hasTimePassed(delayValue.getValue().intValue())) {
+            delay.reset();
+            return;
+        }
 
-                Optional<EntityOtherPlayerMP> target = getTarget(minRangeValue.getValue().floatValue(), maxRangeValue.getValue().floatValue());
-                if (target.isEmpty()) return;
 
-                if (getThrowSlot() >= 0) {
-                    EntityOtherPlayerMP player = target.get();
-                    double distance = mc.player.getDistance(player);
-                    float predict = (float) distance * predictValue.getValue().floatValue();
+        if (delay.hasTimePassed(delayValue.getValue().intValue())) {
 
-                    Vector2f rotationNew = RotationUtils.toRotation(
-                            player.getPositionEyes(predict), 0F
-                    );
+            Optional<EntityOtherPlayerMP> target = getTarget(minRangeValue.getValue().floatValue(), maxRangeValue.getValue().floatValue());
+            if (target.isEmpty()) return;
 
-                    Vector2f targetRotation = new Vector2f(rotationNew.getX(), rotationNew.getY());
-                    RayTraceResult rayCast = rayCast(targetRotation, distance, 0f, mc.player, false, 0F, 0F);
-                    if (rayCast == null || rayCast.typeOfHit == RayTraceResult.Type.BLOCK) {
-                        return;
-                    }
+            if (getThrowSlot() >= 0) {
+                EntityOtherPlayerMP player = target.get();
+                double distance = mc.player.getDistance(player);
+                float predict = (float) distance * predictValue.getValue().floatValue();
 
-                    targetRotation.y = MathHelper.clamp(targetRotation.getY(), -90, 90);
-                    SilentRotation.setRotation(targetRotation, MoveCategory.Silent);
-                    isRunning = true;
+                Vector2f rotationNew = RotationUtils.toRotation(
+                        player.getPositionEyes(predict), 0F
+                );
+
+                Vector2f targetRotation = new Vector2f(rotationNew.getX(), rotationNew.getY());
+                RayTraceResult rayCast = rayCast(targetRotation, distance, 0f, mc.player, false, 0F, 0F);
+                if (rayCast == null || rayCast.typeOfHit == RayTraceResult.Type.BLOCK) {
+                    return;
                 }
+
+                targetRotation.y = MathHelper.clamp(targetRotation.getY(), -90, 90);
+                SilentRotation.setRotation(targetRotation, MoveCategory.Silent);
+                isRunning = true;
             }
         }
     }
@@ -94,12 +97,11 @@ public class AutoProjectile extends Mode {
     private void noMotion(EventMotion eventMotion) {
         if (eventMotion.getType() == EventMotion.Type.Post) {
             if (isRunning) {
-                isRunning = false;
-
                 mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(getThrowSlot()));
                 mc.player.connection.sendPacketNoEvent(new CPacketPlayerTryUseItem(EnumHand.MAIN_HAND));
                 delay.reset();
                 mc.player.connection.sendPacketNoEvent(new CPacketHeldItemChange(mc.player.inventory.currentItem));
+                isRunning = false;
             }
         }
     }
